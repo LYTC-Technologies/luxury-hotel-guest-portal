@@ -1,0 +1,6 @@
+{
+  "name": "بوابة الضيوف الفندقية - Guest Portal",
+  "description": "بوابة ضيوف فندقية فاخرة باللغة العربية بالكامل تتيح للنزلاء طلب الخدمات وتتبع الفواتير وحجز الأنشطة وتصفح الخدمات الفندقية الراقية.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
