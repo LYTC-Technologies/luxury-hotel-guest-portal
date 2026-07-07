@@ -5,14 +5,16 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, CreditCard, Download, CheckCircle, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, CreditCard, Download, CheckCircle, ShieldCheck } from 'lucide-react';
 import { currentInvoice } from '../data';
+import { Guest } from '../types';
 
 interface BillsProps {
+  guest: Guest;
   onBack: () => void;
 }
 
-export default function Bills({ onBack }: BillsProps) {
+export default function Bills({ guest, onBack }: BillsProps) {
   const [invoiceItems, setInvoiceItems] = useState(currentInvoice);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -34,7 +36,7 @@ export default function Bills({ onBack }: BillsProps) {
   };
 
   return (
-    <div className="pb-32 pt-6 px-4 max-w-4xl mx-auto space-y-6 text-right font-sans">
+    <div className="page-container space-y-6 text-right font-sans">
       {/* Header */}
       <div className="flex justify-between items-center">
         {/* PDF Receipt download button */}
@@ -57,7 +59,7 @@ export default function Bills({ onBack }: BillsProps) {
             className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-colors cursor-pointer"
             id="btn-back-bills"
           >
-            <ArrowRight className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5" />
           </button>
         </div>
       </div>
@@ -75,7 +77,7 @@ export default function Bills({ onBack }: BillsProps) {
             </div>
             <h3 className="font-serif text-xl font-bold text-white">تم الدفع والتسوية بنجاح!</h3>
             <p className="text-xs text-gray-400 max-w-md mx-auto leading-relaxed">
-              تقديراً لاختيارك المتميز، تم تسوية وسداد إجمالي فاتورة الجناح رقم <span className="text-[#dfba73] font-bold">702</span> البالغة <span className="text-[#dfba73] font-bold font-mono">{totalBill} ر.س</span> بنجاح عبر بوابة الدفع الفيدرالية الآمنة. تم تحديث كشف الحساب فورياً.
+              تقديراً لاختيارك المتميز، تم تسوية وسداد إجمالي فاتورة الجناح رقم <span className="text-[#dfba73] font-bold">{guest.roomNumber}</span> البالغة <span className="text-[#dfba73] font-bold font-mono">{totalBill.toLocaleString('ar-SA')} ر.س</span> بنجاح عبر بوابة الدفع الآمنة.
             </p>
             <div className="w-20 h-[1px] bg-white/10 mx-auto" />
             <div className="text-[10px] text-gray-500 font-mono">المرجع البنكي للتأكيد: #TXN-{Math.floor(Math.random() * 900000) + 100000}</div>

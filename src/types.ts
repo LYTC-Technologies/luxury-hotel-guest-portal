@@ -11,6 +11,20 @@ export interface Guest {
   checkInDate: string;
   checkOutDate: string;
   hotelName: string;
+  roomType: string;
+  bedType: string;
+  guestCount: number;
+  childrenCount: number;
+  loyaltyPoints: number;
+  balanceDue: number;
+  paidAmount: number;
+  totalAmount: number;
+  taxes: number;
+  discounts: number;
+  promoCode: string;
+  reservationStatus: 'مؤكد' | 'قيد المراجعة' | 'ملغى';
+  email: string;
+  phone: string;
 }
 
 export interface FoodItem {
@@ -19,10 +33,13 @@ export interface FoodItem {
   description: string;
   price: number;
   image: string;
-  category: 'breakfast' | 'main' | 'dessert' | 'drinks';
+  category: 'breakfast' | 'lunch' | 'dinner' | 'dessert' | 'drinks' | 'coffee' | 'kids' | 'snacks';
   isOffer?: boolean;
   offerPrice?: number;
   isChefSpecial?: boolean;
+  isVegetarian?: boolean;
+  isHalal?: boolean;
+  isGlutenFree?: boolean;
 }
 
 export interface CartItem {
@@ -91,7 +108,7 @@ export interface Notification {
   message: string;
   time: string;
   read: boolean;
-  type: 'info' | 'order' | 'billing' | 'spa';
+  type: 'info' | 'order' | 'billing' | 'spa' | 'promo' | 'concierge';
 }
 
 export interface Message {
@@ -103,10 +120,106 @@ export interface Message {
 
 export interface Order {
   id: string;
-  type: 'room_service' | 'laundry' | 'housekeeping' | 'spa' | 'restaurant' | 'taxi' | 'maintenance' | 'activities' | 'offers';
+  type: 'room_service' | 'laundry' | 'housekeeping' | 'spa' | 'restaurant' | 'taxi' | 'maintenance' | 'activities' | 'offers' | 'concierge' | 'facilities';
   title: string;
   status: 'pending' | 'preparing' | 'on_the_way' | 'completed';
   time: string;
   estimatedDelivery?: string;
   details: string;
+}
+
+export interface ReservationHistory {
+  id: string;
+  reservationNumber: string;
+  hotelName: string;
+  roomType: string;
+  checkInDate: string;
+  checkOutDate: string;
+  totalAmount: number;
+  status: 'مكتمل' | 'ملغى' | 'قادم';
+}
+
+export interface TimelineEvent {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  time: string;
+  icon: string;
+  status: 'completed' | 'current' | 'upcoming';
+}
+
+export interface HotelFacility {
+  id: string;
+  name: string;
+  description: string;
+  hours: string;
+  location: string;
+  capacity: string;
+  availability: string;
+  image: string;
+}
+
+export interface HotelAnnouncement {
+  id: string;
+  title: string;
+  message: string;
+  date: string;
+  priority: 'high' | 'normal';
+}
+
+export interface TodayEvent {
+  id: string;
+  title: string;
+  time: string;
+  location: string;
+}
+
+export interface ConciergeService {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  category: 'transport' | 'dining' | 'tourism' | 'shopping' | 'emergency' | 'finance';
+}
+
+export interface Review {
+  id: string;
+  guestName: string;
+  rating: number;
+  comment: string;
+  date: string;
+  category: string;
+}
+
+export interface LoyaltyTier {
+  name: string;
+  points: number;
+  nextTier: string;
+  pointsToNext: number;
+  benefits: string[];
+}
+
+export interface WalletTransaction {
+  id: string;
+  title: string;
+  amount: number;
+  date: string;
+  type: 'credit' | 'debit';
+}
+
+export interface LocalPlace {
+  id: string;
+  name: string;
+  description: string;
+  distance: string;
+  category: string;
+  image: string;
+}
+
+export interface FavoriteOrder {
+  id: string;
+  title: string;
+  items: string;
+  lastOrdered: string;
 }

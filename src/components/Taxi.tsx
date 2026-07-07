@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, MapPin, Car, Clock, Navigation, CheckCircle } from 'lucide-react';
+import { ArrowLeft, MapPin, Car, Clock, Navigation, CheckCircle } from 'lucide-react';
 
 interface TaxiProps {
   onBack: () => void;
@@ -88,7 +88,7 @@ export default function Taxi({ onBack, onAddOrder }: TaxiProps) {
             className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-colors cursor-pointer"
             id="btn-back-taxi"
           >
-            <ArrowRight className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5" />
           </button>
         </div>
       </div>

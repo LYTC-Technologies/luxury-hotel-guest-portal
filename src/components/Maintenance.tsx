@@ -5,9 +5,12 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, Wrench, Camera, AlertTriangle, CheckCircle, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Wrench, Camera, AlertTriangle, CheckCircle, Image as ImageIcon } from 'lucide-react';
+import { maintenanceIssues } from '../data';
+import { Guest } from '../types';
 
 interface MaintenanceProps {
+  guest: Guest;
   onBack: () => void;
   onAddOrder: (order: {
     type: 'maintenance';
@@ -17,20 +20,14 @@ interface MaintenanceProps {
   }) => void;
 }
 
-export default function Maintenance({ onBack, onAddOrder }: MaintenanceProps) {
-  const [issueType, setIssueType] = useState('tacing'); // ac / lighting / plumbing / tv / other
+export default function Maintenance({ guest, onBack, onAddOrder }: MaintenanceProps) {
+  const [issueType, setIssueType] = useState('m1');
   const [priority, setPriority] = useState('medium'); // low / medium / urgent
   const [description, setDescription] = useState('');
   const [photoAttached, setPhotoAttached] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
 
-  const issueCategories = [
-    { id: 'tacing', name: 'صيانة مكيف الهواء والتبريد' },
-    { id: 'lighting', name: 'أعطال الإضاءة والمفاتيح الذكية' },
-    { id: 'plumbing', name: 'مشكلات السباكة والمياه الساخنة' },
-    { id: 'tv', name: 'أعطال الشاشة الذكية وشبكة الواي فاي' },
-    { id: 'other', name: 'أخرى (يرجى توضيحها بالأسفل)' }
-  ];
+  const issueCategories = maintenanceIssues.map((m) => ({ id: m.id, name: m.name, priority: m.priority }));
 
   const handleAttachPhoto = () => {
     setPhotoAttached(true);
@@ -83,7 +80,7 @@ export default function Maintenance({ onBack, onAddOrder }: MaintenanceProps) {
             className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-colors cursor-pointer"
             id="btn-back-maintenance"
           >
-            <ArrowRight className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5" />
           </button>
         </div>
       </div>
@@ -101,7 +98,7 @@ export default function Maintenance({ onBack, onAddOrder }: MaintenanceProps) {
             </div>
             <h3 className="font-serif text-xl font-bold text-white">تم إرسال بلاغ الصيانة الفنية!</h3>
             <p className="text-xs text-gray-400 max-w-md mx-auto leading-relaxed">
-              تم استلام البلاغ وتوجيهه إلى فريق المهندسين المناوبين لجناحك رقم <span className="text-[#dfba73] font-bold">702</span>. سيصلك مهندس الصيانة المختص لتفقد الخلل فوراً.
+              تم استلام البلاغ وتوجيهه إلى فريق المهندسين المناوبين لجناحك رقم <span className="text-[#dfba73] font-bold">{guest.roomNumber}</span>. سيصلك مهندس الصيانة المختص لتفقد الخلل فوراً.
             </p>
             <div className="w-20 h-[1px] bg-white/10 mx-auto" />
             <div className="text-[10px] text-gray-500 font-mono">التقدير المتوقع للوصول: {priority === 'urgent' ? 'خلال ١٥ دقيقة' : 'خلال ٤٥ دقيقة'}</div>

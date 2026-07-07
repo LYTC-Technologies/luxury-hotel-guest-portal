@@ -55,7 +55,7 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
           
           {/* Emblem Icon */}
           <div className="relative select-none filter drop-shadow-[0_0_15px_rgba(223,186,115,0.4)]">
-            <img src="/logo.jpg" alt="Hotel Logo" className="w-16 h-16 object-contain" />
+            <img src="/logo.jpg" alt="Hotel Logo" className="w-20 h-20 rounded-full object-cover border-2 border-[#dfba73]/30" />
           </div>
         </motion.div>
 

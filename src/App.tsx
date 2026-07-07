@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { PhoneCall, AlertTriangle, ShieldCheck, X } from 'lucide-react';
+import { PhoneCall, AlertTriangle, ShieldCheck, X, Search } from 'lucide-react';
 
 // Data & Types
 import { Guest, Order, Notification } from './types';
@@ -29,6 +29,16 @@ import Activities from './components/Activities';
 import Offers from './components/Offers';
 import Notifications from './components/Notifications';
 import Profile from './components/Profile';
+import Reservation from './components/Reservation';
+import CheckIn from './components/CheckIn';
+import CheckOut from './components/CheckOut';
+import MyRoom from './components/MyRoom';
+import Concierge from './components/Concierge';
+import Facilities from './components/Facilities';
+import Loyalty from './components/Loyalty';
+import Reviews from './components/Reviews';
+import Wallet from './components/Wallet';
+import StayTimeline from './components/StayTimeline';
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -61,6 +71,8 @@ export default function App() {
   const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
   const [showEmergencyModal, setShowEmergencyModal] = useState(false);
   const [emergencyCalling, setEmergencyCalling] = useState(false);
+  const [orderSearch, setOrderSearch] = useState('');
+  const [orderStatusFilter, setOrderStatusFilter] = useState<'all' | Order['status']>('all');
 
   // Auto-transition orders status for interactive immersion!
   useEffect(() => {
@@ -172,6 +184,14 @@ export default function App() {
 
   const unreadNotificationsCount = notifications.filter((n) => !n.read).length;
 
+  const filteredOrders = useMemo(() => {
+    return orders.filter((ord) => {
+      const matchSearch = !orderSearch || ord.title.includes(orderSearch) || ord.details.includes(orderSearch);
+      const matchStatus = orderStatusFilter === 'all' || ord.status === orderStatusFilter;
+      return matchSearch && matchStatus;
+    });
+  }, [orders, orderSearch, orderStatusFilter]);
+
   // Navigation from dashboard cards
   const handleDashboardNavigation = (serviceId: string) => {
     // If it corresponds to a footer tab, switch footer tab
@@ -183,6 +203,8 @@ export default function App() {
         setActiveTab(serviceId as TabType);
         setActiveService(null);
       }
+    } else if (serviceId === 'reservation') {
+      setActiveService('reservation');
     } else {
       // Open as nested service screen
       setActiveService(serviceId);
@@ -199,9 +221,9 @@ export default function App() {
         case 'room_service':
           return <RoomService onBack={() => setActiveService(null)} onAddOrder={handleAddOrder} />;
         case 'laundry':
-          return <Laundry onBack={() => setActiveService(null)} onAddOrder={handleAddOrder} />;
+          return <Laundry guest={guest} onBack={() => setActiveService(null)} onAddOrder={handleAddOrder} />;
         case 'housekeeping':
-          return <Housekeeping onBack={() => setActiveService(null)} onAddOrder={handleAddOrder} />;
+          return <Housekeeping guest={guest} onBack={() => setActiveService(null)} onAddOrder={handleAddOrder} />;
         case 'restaurant':
           return <Restaurant onBack={() => setActiveService(null)} onAddOrder={handleAddOrder} />;
         case 'spa':
@@ -209,17 +231,37 @@ export default function App() {
         case 'taxi':
           return <Taxi onBack={() => setActiveService(null)} onAddOrder={handleAddOrder} />;
         case 'maintenance':
-          return <Maintenance onBack={() => setActiveService(null)} onAddOrder={handleAddOrder} />;
+          return <Maintenance guest={guest} onBack={() => setActiveService(null)} onAddOrder={handleAddOrder} />;
         case 'reception':
-          return <Reception onBack={() => setActiveService(null)} />;
+          return <Reception guest={guest} onBack={() => setActiveService(null)} />;
         case 'bills':
-          return <Bills onBack={() => setActiveService(null)} />;
+          return <Bills guest={guest} onBack={() => setActiveService(null)} />;
         case 'activities':
           return <Activities onBack={() => setActiveService(null)} onAddOrder={handleAddOrder} />;
         case 'offers':
           return <Offers onBack={() => setActiveService(null)} onAddOrder={handleAddOrder} />;
         case 'faq':
-          return <Profile guest={guest} onLogout={handleLogout} />; // FAQ is inside profile accordion
+          return <Profile guest={guest} onLogout={handleLogout} />;
+        case 'reservation':
+          return <Reservation onBack={() => setActiveService(null)} />;
+        case 'check_in':
+          return <CheckIn onBack={() => setActiveService(null)} />;
+        case 'check_out':
+          return <CheckOut onBack={() => setActiveService(null)} />;
+        case 'my_room':
+          return <MyRoom guest={guest} onBack={() => setActiveService(null)} onAddOrder={handleAddOrder} />;
+        case 'concierge':
+          return <Concierge onBack={() => setActiveService(null)} onAddOrder={handleAddOrder} />;
+        case 'facilities':
+          return <Facilities onBack={() => setActiveService(null)} onAddOrder={handleAddOrder} />;
+        case 'loyalty':
+          return <Loyalty guest={guest} onBack={() => setActiveService(null)} />;
+        case 'reviews':
+          return <Reviews onBack={() => setActiveService(null)} />;
+        case 'wallet':
+          return <Wallet guest={guest} onBack={() => setActiveService(null)} />;
+        case 'stay_timeline':
+          return <StayTimeline onBack={() => setActiveService(null)} />;
         default:
           setActiveService(null);
           return null;
@@ -246,13 +288,12 @@ export default function App() {
           />
         );
       case 'requests':
-        // "طلباتي" (My Requests) Screen
         return (
-          <div className="pb-32 pt-6 px-4 max-w-2xl mx-auto space-y-6 text-right font-sans">
-            <div className="flex justify-between items-center pb-2 border-b border-white/5">
+          <div className="page-container space-y-6 text-right font-sans">
+            <div className="flex justify-between items-center pb-2 border-b border-white/5 flex-wrap gap-3">
               <button
                 onClick={() => setActiveService('bills')}
-                className="text-xs text-[#dfba73] hover:text-[#dfba73]/80 border border-[#dfba73]/20 bg-[#dfba73]/5 px-3 py-1.5 rounded-full font-semibold transition-all"
+                className="text-xs text-[#dfba73] hover:text-[#dfba73]/80 border border-[#dfba73]/20 bg-[#dfba73]/5 px-3 py-1.5 rounded-full font-semibold transition-all touch-target"
                 id="btn-requests-billing"
               >
                 تفاصيل الفاتورة النشطة
@@ -260,17 +301,39 @@ export default function App() {
               <h1 className="font-serif text-xl sm:text-2xl font-bold text-white">سجل طلباتي النشطة</h1>
             </div>
 
-            {orders.length === 0 ? (
-              <div className="glass-panel p-10 rounded-2xl text-center space-y-3 border-white/5">
+            <div className="space-y-3">
+              <div className="relative">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <input value={orderSearch} onChange={(e) => setOrderSearch(e.target.value)} placeholder="ابحث في الطلبات..."
+                  className="w-full bg-black/50 rounded-xl border border-white/10 pr-10 pl-4 py-3 text-sm text-white focus:border-[#dfba73] outline-none" />
+              </div>
+              <div className="flex flex-wrap gap-2 justify-end">
+                {[
+                  { id: 'all', label: 'الكل' },
+                  { id: 'pending', label: 'قيد المراجعة' },
+                  { id: 'preparing', label: 'جاري التحضير' },
+                  { id: 'on_the_way', label: 'في الطريق' },
+                  { id: 'completed', label: 'مكتمل' },
+                ].map((f) => (
+                  <button key={f.id} onClick={() => setOrderStatusFilter(f.id as typeof orderStatusFilter)}
+                    className={`px-3 py-1.5 rounded-full text-[11px] touch-target ${orderStatusFilter === f.id ? 'bg-[#dfba73]/20 text-[#dfba73]' : 'bg-white/5 text-gray-400'}`}>
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {filteredOrders.length === 0 ? (
+              <div className="glass-panel rounded-2xl text-center space-y-3">
                 <div className="text-4xl">📋</div>
-                <h3 className="text-sm font-bold text-gray-400">لا توجد طلبات جارية</h3>
+                <h3 className="text-sm font-bold text-gray-400">{orders.length === 0 ? 'لا توجد طلبات جارية' : 'لا توجد نتائج مطابقة'}</h3>
                 <p className="text-xs text-gray-600 max-w-xs mx-auto leading-relaxed">
-                  لم تقم بإرسال أي طلبات للجناح بعد. تصفّح قائمة الخدمات الفندقية لطلب الطعام، ترتيب الغرفة، أو حجز السبا.
+                  {orders.length === 0 ? 'لم تقم بإرسال أي طلبات للجناح بعد. تصفّح قائمة الخدمات الفندقية لطلب الطعام أو حجز السبا.' : 'جرّب تغيير معايير البحث أو الفلتر.'}
                 </p>
               </div>
             ) : (
               <div className="space-y-4" id="requests-list">
-                {orders.map((ord) => (
+                {filteredOrders.map((ord) => (
                   <div
                     key={ord.id}
                     className="glass-panel p-5 rounded-2xl border-white/5 space-y-4 relative overflow-hidden text-right shadow-md"
@@ -367,27 +430,6 @@ export default function App() {
             {/* Ambient luxury floating background nodes */}
             <div className="absolute top-0 right-0 w-96 h-96 bg-[radial-gradient(circle_at_center,rgba(223,186,115,0.04)_0%,rgba(0,0,0,0)_70%)] pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-96 h-96 bg-[radial-gradient(circle_at_center,rgba(30,58,138,0.05)_0%,rgba(0,0,0,0)_70%)] pointer-events-none" />
-
-            {/* Top Minimalist Luxury Sticky Header */}
-            <header className="sticky top-0 z-30 bg-[#080808]/70 backdrop-blur-md border-b border-white/5 px-4 py-3 text-right">
-              <div className="max-w-4xl mx-auto flex items-center justify-between">
-                
-                {/* Suite details badge */}
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-gray-400 font-mono font-medium">جناح {guest.roomNumber}</span>
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#dfba73] animate-pulse" />
-                </div>
-
-                {/* Hotel Small Header Branding */}
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => { setActiveTab('home'); setActiveService(null); }}>
-                  <img src="/logo.jpg" alt="Hotel Logo" className="h-6 w-auto object-contain" />
-                  <span className="font-serif text-xs font-bold text-[#dfba73] tracking-wide select-none">
-                    منتجع الأمان الملكي
-                  </span>
-                </div>
-
-              </div>
-            </header>
 
             {/* Render sub-view or active tab */}
             <main className="relative z-10 animate-luxury-fade min-h-[calc(100vh-140px)]">

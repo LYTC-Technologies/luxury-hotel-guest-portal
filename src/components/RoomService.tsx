@@ -5,8 +5,8 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, ShoppingBag, Plus, Minus, ArrowRight, Trash2, CheckCircle2 } from 'lucide-react';
-import { foodItems, foodCategories } from '../data';
+import { Search, ShoppingBag, Plus, Minus, ArrowLeft, Trash2, CheckCircle2 } from 'lucide-react';
+import { foodItems, foodCategories, favoriteOrders } from '../data';
 import { FoodItem, CartItem } from '../types';
 
 interface RoomServiceProps {
@@ -22,6 +22,8 @@ interface RoomServiceProps {
 export default function RoomService({ onBack, onAddOrder }: RoomServiceProps) {
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [dietFilter, setDietFilter] = useState<'all' | 'vegetarian' | 'halal' | 'glutenFree'>('all');
+  const [showFavorites, setShowFavorites] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showCart, setShowCart] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
@@ -32,8 +34,19 @@ export default function RoomService({ onBack, onAddOrder }: RoomServiceProps) {
     const matchesCategory = activeCategory === 'all' || item.category === activeCategory;
     const matchesSearch =
       item.name.includes(searchQuery) || item.description.includes(searchQuery);
-    return matchesCategory && matchesSearch;
+    const matchesDiet =
+      dietFilter === 'all' ||
+      (dietFilter === 'vegetarian' && item.isVegetarian) ||
+      (dietFilter === 'halal' && item.isHalal) ||
+      (dietFilter === 'glutenFree' && item.isGlutenFree);
+    return matchesCategory && matchesSearch && matchesDiet;
   });
+
+  const reorderFavorite = (fav: typeof favoriteOrders[0]) => {
+    const matchedItems = foodItems.filter((item) => fav.items.includes(item.name.split(' ')[0]) || fav.items.includes(item.name));
+    matchedItems.forEach((item) => addToCart(item));
+    setShowCart(true);
+  };
 
   const addToCart = (item: FoodItem) => {
     setCart((prev) => {
@@ -120,7 +133,7 @@ export default function RoomService({ onBack, onAddOrder }: RoomServiceProps) {
             className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-colors cursor-pointer"
             id="btn-back-room-service"
           >
-            <ArrowRight className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5" />
           </button>
         </div>
       </div>
@@ -157,8 +170,30 @@ export default function RoomService({ onBack, onAddOrder }: RoomServiceProps) {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-500" />
         </div>
 
+        {/* Dietary Filters */}
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none justify-end" dir="rtl">
+          {[
+            { id: 'all', label: 'الكل' },
+            { id: 'vegetarian', label: 'نباتي' },
+            { id: 'halal', label: 'حلال' },
+            { id: 'glutenFree', label: 'خالٍ من الجلوتين' },
+          ].map((filter) => (
+            <button
+              key={filter.id}
+              onClick={() => setDietFilter(filter.id as typeof dietFilter)}
+              className={`px-3 py-1.5 rounded-full text-[11px] font-medium whitespace-nowrap transition-all cursor-pointer touch-target ${
+                dietFilter === filter.id
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  : 'bg-white/5 text-gray-400 border border-white/5'
+              }`}
+            >
+              {filter.label}
+            </button>
+          ))}
+        </div>
+
         {/* Categories Carousel */}
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none justify-start" dir="rtl">
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none justify-end" dir="rtl">
           {foodCategories.map((category) => (
             <button
               key={category.id}
@@ -173,6 +208,30 @@ export default function RoomService({ onBack, onAddOrder }: RoomServiceProps) {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Favorites & Reorder */}
+      <div className="glass-panel rounded-2xl space-y-3">
+        <button onClick={() => setShowFavorites(!showFavorites)} className="w-full flex justify-between items-center touch-target">
+          <span className="text-xs text-[#dfba73]">{showFavorites ? 'إخفاء' : 'عرض'}</span>
+          <h3 className="font-serif text-sm font-bold text-white">المفضلة وإعادة الطلب السابق</h3>
+        </button>
+        {showFavorites && (
+          <div className="space-y-2">
+            {favoriteOrders.map((fav) => (
+              <div key={fav.id} className="flex justify-between items-center bg-black/20 rounded-xl p-3 border border-white/5">
+                <button onClick={() => reorderFavorite(fav)} className="px-3 py-1.5 bg-[#dfba73]/10 text-[#dfba73] text-[10px] font-bold rounded-lg touch-target">
+                  إعادة الطلب
+                </button>
+                <div className="text-right">
+                  <div className="text-xs font-bold text-white">{fav.title}</div>
+                  <div className="text-[10px] text-gray-500">{fav.items}</div>
+                  <div className="text-[9px] text-gray-600 font-mono">آخر طلب: {fav.lastOrdered}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Food Items Grid */}

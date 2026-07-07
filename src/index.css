@@ -22,6 +22,10 @@
   --color-royal-accent: #2563eb;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   background-color: #080808;
   color: #f3f4f6;
@@ -29,6 +33,27 @@ body {
   direction: rtl;
   overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Page layout utilities */
+.page-container {
+  padding: 1.5rem 1rem 8rem;
+  max-width: 56rem;
+  margin-inline: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .page-container {
+    padding: 1.5rem 1.25rem 8rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .page-container {
+    padding: 2rem 1.5rem 8rem;
+  }
 }
 
 /* Luxury Custom Scrollbar */
@@ -47,12 +72,14 @@ body {
   background: #b59858;
 }
 
-/* Glassmorphism helpers */
+/* Glassmorphism helpers — base padding on all luxury boxes */
 .glass-panel {
   background: rgba(15, 15, 15, 0.7);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(223, 186, 115, 0.15);
+  padding: 1.5rem;
+  box-sizing: border-box;
 }
 
 .glass-panel-light {
@@ -60,6 +87,8 @@ body {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 1.25rem;
+  box-sizing: border-box;
 }
 
 .glass-panel-gold {
@@ -68,6 +97,51 @@ body {
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(223, 186, 115, 0.25);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  padding: 1.5rem;
+  box-sizing: border-box;
+}
+
+/* Luxury content box — consistent inner padding */
+.luxury-box {
+  padding: 1.5rem;
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .glass-panel,
+  .glass-panel-light,
+  .glass-panel-gold,
+  .luxury-box {
+    padding: 1.75rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .glass-panel,
+  .glass-panel-light,
+  .glass-panel-gold,
+  .luxury-box {
+    padding: 2rem;
+  }
+}
+
+/* Responsive table wrapper */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+
+/* Touch-friendly minimum targets */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Prevent horizontal overflow on media */
+img, video, svg {
+  max-width: 100%;
+  height: auto;
 }
 
 .gold-border-glow {

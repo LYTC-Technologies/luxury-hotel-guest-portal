@@ -41,13 +41,11 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
 
       // If user inputs anything, log them in as a Guest using their name or standard guest
       const guestObj: Guest = {
+        ...sampleGuest,
         name: cleanLast === sampleGuest.lastName ? sampleGuest.name : 'الضيف الكريم',
         lastName: cleanLast,
         roomNumber: cleanRoom,
         reservationNumber: cleanRes,
-        checkInDate: sampleGuest.checkInDate,
-        checkOutDate: sampleGuest.checkOutDate,
-        hotelName: sampleGuest.hotelName
       };
 
       onLoginSuccess(guestObj);
@@ -89,7 +87,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
         {/* Card Header */}
         <div className="text-center mb-8">
           <div className="mb-4 animate-[bounce_3s_infinite] select-none" id="hotel-emblem">
-            <img src="/logo.jpg" alt="Hotel Logo" className="w-16 h-16 object-contain mx-auto" />
+            <img src="/logo.jpg" alt="Hotel Logo" className="w-20 h-20 rounded-full object-cover border-2 border-[#dfba73]/30 mx-auto" />
           </div>
           <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#dfba73] gold-text-glow tracking-wide select-none">
             {hotelDetails.name}

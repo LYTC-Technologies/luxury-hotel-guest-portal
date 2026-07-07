@@ -5,11 +5,13 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, Shirt, Plus, Minus, CheckCircle, Clock } from 'lucide-react';
-import { laundryItems } from '../data';
-import { LaundryItem, LaundryCartItem } from '../types';
+import { ArrowLeft, Shirt, Plus, Minus, CheckCircle, Clock } from 'lucide-react';
+import { laundryItems, laundryPriceList, laundryHistory } from '../data';
+import { Guest, LaundryItem, LaundryCartItem } from '../types';
+import ServiceHeader from './ServiceHeader';
 
 interface LaundryProps {
+  guest: Guest;
   onBack: () => void;
   onAddOrder: (order: {
     type: 'laundry';
@@ -19,13 +21,16 @@ interface LaundryProps {
   }) => void;
 }
 
-export default function Laundry({ onBack, onAddOrder }: LaundryProps) {
+export default function Laundry({ guest, onBack, onAddOrder }: LaundryProps) {
   const [cart, setCart] = useState<LaundryCartItem[]>([]);
   const [expressService, setExpressService] = useState(false);
   const [pickupTime, setPickupTime] = useState('10:00 صباحاً - 12:00 ظهراً');
   const [deliveryTime, setDeliveryTime] = useState('06:00 مساءً - 08:00 مساءً');
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [activeTab, setActiveTab] = useState<'men' | 'women' | 'dryclean'>('men');
+  const [viewMode, setViewMode] = useState<'order' | 'prices' | 'history' | 'tracking'>('order');
+  const [showPayment, setShowPayment] = useState(false);
+  const [paid, setPaid] = useState(false);
 
   const addToCart = (item: LaundryItem) => {
     setCart((prev) => {
@@ -57,7 +62,14 @@ export default function Laundry({ onBack, onAddOrder }: LaundryProps) {
 
   const handleOrder = () => {
     if (cart.length === 0) return;
+    if (!paid) {
+      setShowPayment(true);
+      return;
+    }
+    submitOrder();
+  };
 
+  const submitOrder = () => {
     const details = cart
       .map((i) => `${i.item.name} (عدد ${i.quantity})`)
       .join(', ') +
@@ -73,6 +85,8 @@ export default function Laundry({ onBack, onAddOrder }: LaundryProps) {
 
     setOrderPlaced(true);
     setCart([]);
+    setPaid(false);
+    setShowPayment(false);
     setTimeout(() => {
       setOrderPlaced(false);
     }, 4000);
@@ -81,28 +95,84 @@ export default function Laundry({ onBack, onAddOrder }: LaundryProps) {
   const filteredItems = laundryItems.filter((i) => i.category === activeTab);
 
   return (
-    <div className="pb-32 pt-6 px-4 max-w-4xl mx-auto space-y-6 text-right font-sans">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div className="text-left text-xs font-mono text-[#dfba73]">
-          {cart.length > 0 && `إجمالي المؤقت: ${grandTotal} ر.س`}
-        </div>
+    <div className="page-container space-y-6 text-right font-sans">
+      <ServiceHeader
+        title="العناية بالملابس والمغسلة"
+        subtitle="غسيل جاف، كي بالبخار وعناية ملكية"
+        onBack={onBack}
+        action={cart.length > 0 ? (
+          <span className="text-xs font-mono text-[#dfba73]">{grandTotal} ر.س</span>
+        ) : undefined}
+      />
 
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="font-serif text-xl sm:text-2xl font-bold text-white">العناية بالملابس والمغسلة</h1>
-            <p className="text-xs text-gray-400 mt-0.5">غسيل جاف، كي بالبخار وعناية ملكية بالبشوت والحرير</p>
-          </div>
-          <button
-            onClick={onBack}
-            className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-colors cursor-pointer"
-            id="btn-back-laundry"
-          >
-            <ArrowRight className="w-5 h-5" />
-          </button>
-        </div>
+      {/* View tabs */}
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none" dir="rtl">
+        {[
+          { id: 'order', label: 'طلب جديد' },
+          { id: 'prices', label: 'قائمة الأسعار' },
+          { id: 'tracking', label: 'تتبع الطلب' },
+          { id: 'history', label: 'السجل' },
+        ].map((tab) => (
+          <button key={tab.id} onClick={() => setViewMode(tab.id as typeof viewMode)}
+            className={`px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap touch-target ${
+              viewMode === tab.id ? 'bg-[#dfba73] text-black font-bold' : 'bg-white/5 text-gray-400'
+            }`}>{tab.label}</button>
+        ))}
       </div>
 
+      {viewMode === 'prices' && (
+        <div className="glass-panel rounded-2xl space-y-3">
+          <h3 className="font-serif text-sm font-bold text-white">قائمة الأسعار</h3>
+          {laundryPriceList.map((item) => (
+            <div key={item.service} className="flex justify-between items-center bg-black/20 rounded-xl p-4 border border-white/5 text-xs">
+              <span className="text-[#dfba73] font-mono">{item.price}</span>
+              <div className="text-right">
+                <div className="text-white font-medium">{item.service}</div>
+                <div className="text-[10px] text-gray-500">الوقت المتوقع: {item.time}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {viewMode === 'tracking' && (
+        <div className="glass-panel rounded-2xl space-y-4">
+          <h3 className="font-serif text-sm font-bold text-white">تتبع الطلب الحالي</h3>
+          <div className="space-y-3">
+            {[
+              { step: 'تم استلام الطلب', done: true },
+              { step: 'جاري الاستلام من الجناح', done: true },
+              { step: 'الغسيل والكي', done: true },
+              { step: 'التعليق بالخزانة', done: false },
+            ].map((s, i) => (
+              <div key={i} className="flex gap-3 items-center">
+                <div className={`w-3 h-3 rounded-full shrink-0 ${s.done ? 'bg-emerald-400' : 'bg-white/20 animate-pulse'}`} />
+                <span className={`text-xs ${s.done ? 'text-white' : 'text-gray-500'}`}>{s.step}</span>
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] text-[#dfba73]">الوقت المتوقع للتسليم: {expressService ? 'خلال ٤ ساعات' : '06:00 مساءً'}</p>
+        </div>
+      )}
+
+      {viewMode === 'history' && (
+        <div className="space-y-3">
+          {laundryHistory.map((item) => (
+            <div key={item.id} className="glass-panel rounded-2xl space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-lg font-bold">{item.status}</span>
+                <span className="text-xs font-bold text-white">{item.title}</span>
+              </div>
+              <div className="flex justify-between text-[11px] text-gray-500">
+                <span className="font-mono text-[#dfba73]">{item.amount} ر.س</span>
+                <span>{item.date} • {item.delivery}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {viewMode === 'order' && (
       <AnimatePresence mode="wait">
         {orderPlaced ? (
           <motion.div
@@ -116,7 +186,7 @@ export default function Laundry({ onBack, onAddOrder }: LaundryProps) {
             </div>
             <h3 className="font-serif text-xl font-bold text-white">تم استلام طلب المغسلة بنجاح!</h3>
             <p className="text-xs text-gray-400 max-w-md mx-auto leading-relaxed">
-              تم تسجيل الطلب في قائمة الخدمة الخاصة الفورية. سيقوم موظف العناية بالملابس بالمرور على جناحك رقم <span className="text-[#dfba73] font-bold">702</span> لاستلام الملابس خلال الموعد المختار.
+              تم تسجيل الطلب في قائمة الخدمة الخاصة الفورية. سيقوم موظف العناية بالملابس بالمرور على جناحك رقم <span className="text-[#dfba73] font-bold">{guest.roomNumber}</span> لاستلام الملابس خلال الموعد المختار.
             </p>
             <div className="w-20 h-[1px] bg-white/10 mx-auto" />
             <div className="text-[10px] text-gray-500 font-mono">الخدمة: {expressService ? 'عناية مستعجلة فائقة (٤ ساعات)' : 'عناية اعتيادية فاخرة'}</div>
@@ -285,6 +355,26 @@ export default function Laundry({ onBack, onAddOrder }: LaundryProps) {
               </div>
             </div>
 
+          </div>
+        )}
+      </AnimatePresence>
+      )}
+
+      {/* Payment Modal */}
+      <AnimatePresence>
+        {showPayment && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowPayment(false)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
+            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }} className="relative z-10 w-full max-w-sm glass-panel rounded-2xl space-y-4 text-right">
+              <h3 className="font-serif text-base font-bold text-white text-center">دفع طلب المغسلة</h3>
+              <div className="text-center text-2xl font-bold text-[#dfba73] font-mono">{grandTotal} ر.س</div>
+              <input placeholder="رقم البطاقة" className="w-full bg-black/50 rounded-xl border border-white/10 px-4 py-3 text-sm text-white font-mono focus:border-[#dfba73] outline-none" />
+              <div className="grid grid-cols-2 gap-2">
+                <input placeholder="MM/YY" className="bg-black/50 rounded-xl border border-white/10 px-4 py-3 text-sm text-white font-mono focus:border-[#dfba73] outline-none" />
+                <input placeholder="CVV" className="bg-black/50 rounded-xl border border-white/10 px-4 py-3 text-sm text-white font-mono focus:border-[#dfba73] outline-none" />
+              </div>
+              <button onClick={() => { setPaid(true); setShowPayment(false); submitOrder(); }} className="w-full py-3 bg-gradient-to-r from-[#cbba53] via-[#dfba73] to-[#cbba53] text-xs text-black font-bold rounded-xl touch-target">تأكيد الدفع والطلب</button>
+            </motion.div>
           </div>
         )}
       </AnimatePresence>

@@ -5,7 +5,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { User, LogOut, ChevronDown, ChevronUp, Bell, Shield, Phone, MessageSquare, Mail } from 'lucide-react';
+import { User, LogOut, ChevronDown, ChevronUp, Bell, Shield, Phone, MessageSquare, Mail, Crown, Edit, CheckCircle2 } from 'lucide-react';
 import { Guest } from '../types';
 import { faqs, hotelDetails } from '../data';
 
@@ -18,13 +18,31 @@ export default function Profile({ guest, onLogout }: ProfileProps) {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [notifSound, setNotifSound] = useState(true);
   const [privacyMode, setPrivacyMode] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [email, setEmail] = useState(guest.email);
+  const [phone, setPhone] = useState(guest.phone);
+  const [saved, setSaved] = useState(false);
+
+  const handleSaveProfile = () => {
+    setEditing(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  };
 
   const toggleFaq = (index: number) => {
     setOpenFaqIndex(openFaqIndex === index ? null : index);
   };
 
   return (
-    <div className="pb-32 pt-6 px-4 max-w-2xl mx-auto space-y-6 text-right font-sans">
+    <div className="page-container space-y-6 text-right font-sans">
+
+      {saved && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+          className="glass-panel-gold rounded-2xl flex items-center gap-3 text-emerald-400">
+          <CheckCircle2 className="w-5 h-5" />
+          <span className="text-sm">تم حفظ التعديلات بنجاح</span>
+        </motion.div>
+      )}
       
       {/* Header Profile card */}
       <div className="glass-panel p-6 rounded-3xl border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4 text-center sm:text-right relative overflow-hidden bg-gradient-to-br from-neutral-900 via-neutral-950 to-[#dfba73]/5">
@@ -56,6 +74,33 @@ export default function Profile({ guest, onLogout }: ProfileProps) {
           <div className="w-16 h-16 rounded-2xl bg-[#dfba73]/10 border border-[#dfba73]/20 flex items-center justify-center text-2xl shadow-inner shadow-black/50 select-none">
             👤
           </div>
+        </div>
+      </div>
+
+      {/* Guest Details */}
+      <div className="glass-panel rounded-2xl space-y-4">
+        <div className="flex justify-between items-center">
+          <button onClick={() => editing ? handleSaveProfile() : setEditing(true)}
+            className="px-3 py-1.5 bg-[#dfba73]/10 text-[#dfba73] text-xs rounded-lg flex items-center gap-1 touch-target">
+            <Edit className="w-3 h-3" />{editing ? 'حفظ' : 'تعديل'}
+          </button>
+          <h3 className="font-serif text-sm font-bold text-white flex items-center gap-2">
+            <span>بيانات النزيل</span><User className="w-4 h-4 text-[#dfba73]" />
+          </h3>
+        </div>
+        <div className="grid grid-cols-2 gap-3 text-xs">
+          <div><div className="text-[10px] text-gray-500">البريد الإلكتروني</div>
+            {editing ? <input value={email} onChange={(e) => setEmail(e.target.value)} className="w-full mt-1 bg-black/50 rounded-lg border border-white/10 px-2 py-1.5 text-white text-xs focus:border-[#dfba73] outline-none" /> :
+            <div className="text-white mt-0.5 font-mono text-[11px]">{email}</div>}
+          </div>
+          <div><div className="text-[10px] text-gray-500">رقم الجوال</div>
+            {editing ? <input value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full mt-1 bg-black/50 rounded-lg border border-white/10 px-2 py-1.5 text-white text-xs focus:border-[#dfba73] outline-none" /> :
+            <div className="text-white mt-0.5 font-mono text-[11px]">{phone}</div>}
+          </div>
+          <div><div className="text-[10px] text-gray-500">نوع الغرفة</div><div className="text-white mt-0.5">{guest.roomType}</div></div>
+          <div><div className="text-[10px] text-gray-500">رقم الحجز</div><div className="text-[#dfba73] mt-0.5 font-mono">{guest.reservationNumber}</div></div>
+          <div><div className="text-[10px] text-gray-500">نقاط الولاء</div><div className="text-[#dfba73] mt-0.5 font-mono flex items-center justify-end gap-1"><Crown className="w-3 h-3" />{guest.loyaltyPoints.toLocaleString('ar-SA')}</div></div>
+          <div><div className="text-[10px] text-gray-500">الرصيد المستحق</div><div className="text-white mt-0.5 font-mono">{guest.balanceDue.toLocaleString('ar-SA')} ر.س</div></div>
         </div>
       </div>
 

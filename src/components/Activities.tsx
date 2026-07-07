@@ -5,7 +5,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, Compass, MapPin, Calendar, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Compass, MapPin, Calendar, CheckCircle } from 'lucide-react';
 import { activities } from '../data';
 
 interface ActivitiesProps {
@@ -54,7 +54,7 @@ export default function Activities({ onBack, onAddOrder }: ActivitiesProps) {
             className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-colors cursor-pointer"
             id="btn-back-activities"
           >
-            <ArrowRight className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5" />
           </button>
         </div>
       </div>

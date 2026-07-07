@@ -5,10 +5,12 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, Sparkles, CheckCircle2, Heart, Plus, Minus, Layers } from 'lucide-react';
-import { hotelDetails } from '../data';
+import { ArrowLeft, Sparkles, CheckCircle2, Heart, Plus, Minus, Layers } from 'lucide-react';
+import { hotelDetails, housekeepingItems } from '../data';
+import { Guest } from '../types';
 
 interface HousekeepingProps {
+  guest: Guest;
   onBack: () => void;
   onAddOrder: (order: {
     type: 'housekeeping';
@@ -18,7 +20,7 @@ interface HousekeepingProps {
   }) => void;
 }
 
-export default function Housekeeping({ onBack, onAddOrder }: HousekeepingProps) {
+export default function Housekeeping({ guest, onBack, onAddOrder }: HousekeepingProps) {
   const [needCleaning, setNeedCleaning] = useState(false);
   const [towelsCount, setTowelsCount] = useState(0);
   const [pillowsCount, setPillowsCount] = useState(0);
@@ -26,6 +28,7 @@ export default function Housekeeping({ onBack, onAddOrder }: HousekeepingProps) 
   const [needBabyBed, setNeedBabyBed] = useState(false);
   const [preferredTime, setPreferredTime] = useState('في أقرب وقت ممكن');
   const [specialInstructions, setSpecialInstructions] = useState('');
+  const [extraItems, setExtraItems] = useState<Record<string, boolean>>({});
   const [orderPlaced, setOrderPlaced] = useState(false);
 
   const handleOrder = () => {
@@ -36,6 +39,10 @@ export default function Housekeeping({ onBack, onAddOrder }: HousekeepingProps) 
     if (pillowsCount > 0) detailsArr.push(`وسائد ريش النعام حريرية (عدد ${pillowsCount})`);
     if (blanketsCount > 0) detailsArr.push(`ألحفة شتوية قطنية إضافية (عدد ${blanketsCount})`);
     if (needBabyBed) detailsArr.push('سرير طفل رضيع مبطن بالكامل مع ألعاب معقمة');
+    Object.entries(extraItems).filter(([, v]) => v).forEach(([id]) => {
+      const item = housekeepingItems.find((h) => h.id === id);
+      if (item) detailsArr.push(item.name);
+    });
     
     if (detailsArr.length === 0 && !specialInstructions) {
       alert('يرجى تحديد خدمة واحدة على الأقل للمتابعة.');
@@ -107,7 +114,7 @@ export default function Housekeeping({ onBack, onAddOrder }: HousekeepingProps) 
             className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-colors cursor-pointer"
             id="btn-back-housekeeping"
           >
-            <ArrowRight className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5" />
           </button>
         </div>
       </div>
@@ -125,7 +132,7 @@ export default function Housekeeping({ onBack, onAddOrder }: HousekeepingProps) 
             </div>
             <h3 className="font-serif text-xl font-bold text-white">تم إرسال طلب التهيئة بنجاح!</h3>
             <p className="text-xs text-gray-400 max-w-md mx-auto leading-relaxed">
-              تم إشعار فريق خدمة الغرف الخاص بجناحك رقم <span className="text-[#dfba73] font-bold">702</span>. سيقوم الفريق بالمرور لتلبية احتياجاتك بالكامل في الوقت المختار.
+              تم إشعار فريق خدمة الغرف الخاص بجناحك رقم <span className="text-[#dfba73] font-bold">{guest.roomNumber}</span>. سيقوم الفريق بالمرور لتلبية احتياجاتك بالكامل في الوقت المختار.
             </p>
             <div className="w-20 h-[1px] bg-white/10 mx-auto" />
             <div className="text-[10px] text-gray-500 font-mono">التقدير المتوقع: {preferredTime === 'في أقرب وقت ممكن' ? 'خلال ٢٠ دقيقة' : 'في الوقت المختار'}</div>
@@ -253,6 +260,22 @@ export default function Housekeeping({ onBack, onAddOrder }: HousekeepingProps) 
                       </p>
                     </div>
                   </div>
+                ))}
+              </div>
+
+              {/* All housekeeping items */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {housekeepingItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setExtraItems((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
+                    className={`rounded-xl p-3 text-center transition-all touch-target ${
+                      extraItems[item.id] ? 'bg-[#dfba73]/10 border border-[#dfba73]/30' : 'bg-black/20 border border-white/5'
+                    }`}
+                  >
+                    <div className="text-lg">{item.icon}</div>
+                    <div className="text-[10px] text-gray-300 mt-1">{item.name}</div>
+                  </button>
                 ))}
               </div>
 

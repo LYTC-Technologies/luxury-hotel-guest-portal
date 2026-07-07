@@ -5,20 +5,21 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, MessageSquare, Send, Phone, UserCheck, CalendarDays } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Send, Phone, UserCheck, CalendarDays } from 'lucide-react';
 import { hotelDetails } from '../data';
-import { Message } from '../types';
+import { Guest, Message } from '../types';
 
 interface ReceptionProps {
+  guest: Guest;
   onBack: () => void;
 }
 
-export default function Reception({ onBack }: ReceptionProps) {
+export default function Reception({ guest, onBack }: ReceptionProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'm1',
       sender: 'reception',
-      text: 'مرحباً بك سمو الشيخ سليمان. يسعدني مساعدتك في مركز الخدمة والمكتب الأمامي الخاص بـ منتجع الأمان الملكي. كيف يمكنني تلبية تطلعاتك اليوم؟',
+      text: `مرحباً بك ${guest.name}. يسعدني مساعدتك في مركز الخدمة والمكتب الأمامي الخاص بـ ${hotelDetails.name}. كيف يمكنني تلبية تطلعاتك اليوم؟`,
       time: '11:02 ص'
     }
   ]);
@@ -39,7 +40,7 @@ export default function Reception({ onBack }: ReceptionProps) {
   const presetQuestions = [
     { q: 'أين يقع المسبح والنادي الرياضي؟', a: 'يقع مسبح المنتجع والنادي الرياضي المتكامل في الطابق الأرضي من الجناح الشرقي (الواحة). يفتح النادي أبوابه يومياً من الساعة 6:00 صباحاً وحتى 11:00 مساءً، ويتوفر طاقم مدربين وخدمة مناشف وعصائر طازجة مجانية.' },
     { q: 'هل يمكنني تمديد تسجيل المغادرة؟', a: 'يسعدنا تلبية رغبتك في المغادرة المتأخرة سمو الشيخ. يتم تمديد المغادرة مجاناً حتى الساعة 4:00 عصراً لنزلاء الفلل والأجنحة الملكية. يمكنك تأكيد ذلك مباشرة مع مكتب الاستقبال الآن.' },
-    { q: 'أود طلب الخادم الشخصي المباشر', a: 'تم توجيه طلبك فوراً إلى مساعدك الشخصي المناوب للجناح 702. سيقوم المساعد الشخصي بالاتصال الهاتفي بجناحك أو المرور شخصياً لمساعدتك خلال 5 دقائق لتنفيذ كافة متطلباتك.' }
+    { q: 'أود طلب الخادم الشخصي المباشر', a: `تم توجيه طلبك فوراً إلى مساعدك الشخصي المناوب للجناح ${guest.roomNumber}. سيقوم المساعد الشخصي بالاتصال الهاتفي بجناحك أو المرور شخصياً لمساعدتك خلال 5 دقائق.` }
   ];
 
   const handleSendCustom = (text: string) => {
@@ -112,7 +113,7 @@ export default function Reception({ onBack }: ReceptionProps) {
             className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-colors cursor-pointer"
             id="btn-back-reception"
           >
-            <ArrowRight className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5" />
           </button>
         </div>
       </div>
@@ -158,7 +159,7 @@ export default function Reception({ onBack }: ReceptionProps) {
                 </div>
                 <h4 className="text-xs font-bold text-white">جاري توجيه طلب الاتصال...</h4>
                 <p className="text-[10px] text-gray-400 leading-relaxed">
-                  تم إبلاغ الخادم الشخصي لجناحك <span className="text-[#dfba73] font-bold">702</span>. ستتلقى اتصالاً هاتفياً على هاتف الجناح فوراً خلال دقيقتين.
+                  تم إبلاغ الخادم الشخصي لجناحك <span className="text-[#dfba73] font-bold">{guest.roomNumber}</span>. ستتلقى اتصالاً هاتفياً على هاتف الجناح فوراً خلال دقيقتين.
                 </p>
               </motion.div>
             )}
@@ -201,7 +202,7 @@ export default function Reception({ onBack }: ReceptionProps) {
                   }`}
                 >
                   <p className="font-sans whitespace-pre-line">{msg.text}</p>
-                  <span className="text-[9px] text-gray-500 font-mono mt-1.5 block text-left">
+                  <span className="text-[9px] text-gray-500 font-mono mt-1.5 block text-right">
                     {msg.time}
                   </span>
                 </div>
@@ -224,7 +225,7 @@ export default function Reception({ onBack }: ReceptionProps) {
           </div>
 
           {/* Preset Questions Panel */}
-          <div className="p-3 border-t border-white/5 bg-black/20 flex gap-2 overflow-x-auto justify-start scrollbar-none">
+          <div className="p-3 border-t border-white/5 bg-black/20 flex gap-2 overflow-x-auto justify-end scrollbar-none">
             {presetQuestions.map((pq, idx) => (
               <button
                 key={idx}
