@@ -6,7 +6,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PhoneCall, AlertTriangle, ShieldCheck, X, Search } from 'lucide-react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 // Data & Types
 import { Guest, Order, Notification } from './types';
@@ -216,11 +216,11 @@ function AppContent() {
   // Sync URL with state
   useEffect(() => {
     if (activeService) {
-      window.history.pushState({}, '', `/${activeService}`);
+      window.location.hash = `/${activeService}`;
     } else if (activeTab === 'home') {
-      window.history.pushState({}, '', '/');
+      window.location.hash = '/';
     } else {
-      window.history.pushState({}, '', `/${activeTab}`);
+      window.location.hash = `/${activeTab}`;
     }
   }, [activeService, activeTab]);
 
@@ -552,8 +552,8 @@ function AppContent() {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <AppContent />
-    </BrowserRouter>
+    </HashRouter>
   );
 }
