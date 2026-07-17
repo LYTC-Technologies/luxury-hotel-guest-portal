@@ -47,6 +47,46 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [activeService, setActiveService] = useState<string | null>(null);
   const location = useLocation();
+
+  // Restore state from localStorage on mount
+  useEffect(() => {
+    const savedGuest = localStorage.getItem('guest');
+    const savedTab = localStorage.getItem('activeTab') as TabType;
+    const savedService = localStorage.getItem('activeService');
+
+    if (savedGuest) {
+      setGuest(JSON.parse(savedGuest));
+    }
+    if (savedTab) {
+      setActiveTab(savedTab);
+    }
+    if (savedService) {
+      setActiveService(savedService);
+    }
+    setLoading(false);
+  }, []);
+
+  // Save guest state to localStorage
+  useEffect(() => {
+    if (guest) {
+      localStorage.setItem('guest', JSON.stringify(guest));
+    } else {
+      localStorage.removeItem('guest');
+    }
+  }, [guest]);
+
+  // Save activeTab and activeService to localStorage
+  useEffect(() => {
+    localStorage.setItem('activeTab', activeTab);
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeService) {
+      localStorage.setItem('activeService', activeService);
+    } else {
+      localStorage.removeItem('activeService');
+    }
+  }, [activeService]);
   
   // Real state for orders and notifications
   const [orders, setOrders] = useState<Order[]>([
@@ -122,6 +162,9 @@ function AppContent() {
       }
     ]);
     setNotifications(initialNotifications);
+    localStorage.removeItem('guest');
+    localStorage.removeItem('activeTab');
+    localStorage.removeItem('activeService');
   };
 
   // Add a new order from sub-services dynamically
