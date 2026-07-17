@@ -6,13 +6,33 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Calendar, Clock, CreditCard, Download, Edit2, X, Check, AlertCircle, User, Bed, ChevronDown, ChevronUp, FileText, Receipt } from 'lucide-react';
-import { sampleGuest, reservationTimeline, reservationHistory, currentInvoice } from '../data';
+import { reservationTimeline, reservationHistory, currentInvoice } from '../data';
 
 interface ReservationProps {
   onBack: () => void;
+  guestName?: string;
+  guestLastName?: string;
+  reservationNumber?: string;
+  email?: string;
+  phone?: string;
+  roomNumber?: string;
+  roomType?: string;
+  checkInDate?: string;
+  checkOutDate?: string;
 }
 
-export default function Reservation({ onBack }: ReservationProps) {
+export default function Reservation({ 
+  onBack,
+  guestName = 'الضيف الكريم',
+  guestLastName = '',
+  reservationNumber = '---',
+  email = '',
+  phone = '',
+  roomNumber = '---',
+  roomType = '---',
+  checkInDate = '---',
+  checkOutDate = '---'
+}: ReservationProps) {
   const [activeTab, setActiveTab] = useState<'current' | 'history' | 'timeline'>('current');
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -55,19 +75,19 @@ export default function Reservation({ onBack }: ReservationProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <div className="text-[10px] text-gray-500 mb-1">الاسم الكامل</div>
-            <div className="text-sm text-white font-medium">{sampleGuest.name} {sampleGuest.lastName}</div>
+            <div className="text-sm text-white font-medium">{guestName} {guestLastName}</div>
           </div>
           <div>
             <div className="text-[10px] text-gray-500 mb-1">رقم الحجز</div>
-            <div className="text-sm text-[#dfba73] font-mono font-bold">{sampleGuest.reservationNumber}</div>
+            <div className="text-sm text-[#dfba73] font-mono font-bold">{reservationNumber}</div>
           </div>
           <div>
             <div className="text-[10px] text-gray-500 mb-1">البريد الإلكتروني</div>
-            <div className="text-sm text-white">{sampleGuest.email}</div>
+            <div className="text-sm text-white">{email}</div>
           </div>
           <div>
             <div className="text-[10px] text-gray-500 mb-1">رقم الهاتف</div>
-            <div className="text-sm text-white font-mono">{sampleGuest.phone}</div>
+            <div className="text-sm text-white font-mono">{phone}</div>
           </div>
         </div>
       </div>
@@ -81,19 +101,19 @@ export default function Reservation({ onBack }: ReservationProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <div className="text-[10px] text-gray-500 mb-1">رقم الغرفة</div>
-            <div className="text-sm text-white font-bold">{sampleGuest.roomNumber}</div>
+            <div className="text-sm text-white font-bold">{roomNumber}</div>
           </div>
           <div>
             <div className="text-[10px] text-gray-500 mb-1">نوع الغرفة</div>
-            <div className="text-sm text-white">{sampleGuest.roomType}</div>
+            <div className="text-sm text-white">{roomType}</div>
           </div>
           <div>
             <div className="text-[10px] text-gray-500 mb-1">نوع السرير</div>
-            <div className="text-sm text-white">{sampleGuest.bedType}</div>
+            <div className="text-sm text-white">---</div>
           </div>
           <div>
             <div className="text-[10px] text-gray-500 mb-1">عدد الضيوف</div>
-            <div className="text-sm text-white">{sampleGuest.guestCount} بالغين، {sampleGuest.childrenCount} أطفال</div>
+            <div className="text-sm text-white">---</div>
           </div>
         </div>
       </div>
@@ -107,17 +127,17 @@ export default function Reservation({ onBack }: ReservationProps) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <div className="text-[10px] text-gray-500 mb-1">تاريخ الوصول</div>
-            <div className="text-sm text-white font-mono">{sampleGuest.checkInDate}</div>
+            <div className="text-sm text-white font-mono">{checkInDate}</div>
           </div>
           <div>
             <div className="text-[10px] text-gray-500 mb-1">تاريخ المغادرة</div>
-            <div className="text-sm text-white font-mono">{sampleGuest.checkOutDate}</div>
+            <div className="text-sm text-white font-mono">{checkOutDate}</div>
           </div>
         </div>
         <div className="bg-[#dfba73]/10 rounded-xl p-3 border border-[#dfba73]/20">
           <div className="flex items-center justify-between">
             <span className="text-xs text-[#dfba73] font-medium">حالة الحجز</span>
-            <span className="text-xs text-white font-bold bg-[#dfba73] px-3 py-1 rounded-full">{sampleGuest.reservationStatus}</span>
+            <span className="text-xs text-white font-bold bg-[#dfba73] px-3 py-1 rounded-full">مؤكد</span>
           </div>
         </div>
       </div>
@@ -131,32 +151,24 @@ export default function Reservation({ onBack }: ReservationProps) {
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <span className="text-xs text-gray-400">إجمالي المبلغ</span>
-            <span className="text-sm text-white font-mono">{sampleGuest.totalAmount.toLocaleString('ar-SA')} ر.س</span>
+            <span className="text-sm text-white font-mono">0 ر.س</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-xs text-gray-400">المبلغ المدفوع</span>
-            <span className="text-sm text-emerald-400 font-mono">{sampleGuest.paidAmount.toLocaleString('ar-SA')} ر.س</span>
+            <span className="text-sm text-emerald-400 font-mono">0 ر.س</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-xs text-gray-400">الضرائب</span>
-            <span className="text-sm text-white font-mono">{sampleGuest.taxes.toLocaleString('ar-SA')} ر.س</span>
+            <span className="text-sm text-white font-mono">0 ر.س</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-xs text-gray-400">الخصومات</span>
-            <span className="text-sm text-[#dfba73] font-mono">-{sampleGuest.discounts.toLocaleString('ar-SA')} ر.س</span>
+            <span className="text-sm text-[#dfba73] font-mono">0 ر.س</span>
           </div>
           <div className="flex justify-between items-center pt-3 border-t border-white/10">
             <span className="text-sm font-bold text-white">الرصيد المستحق</span>
-            <span className="text-lg font-bold text-[#dfba73] font-mono">{sampleGuest.balanceDue.toLocaleString('ar-SA')} ر.س</span>
+            <span className="text-lg font-bold text-[#dfba73] font-mono">0 ر.س</span>
           </div>
-          {sampleGuest.promoCode && (
-            <div className="bg-[#dfba73]/10 rounded-xl p-2 border border-[#dfba73]/20">
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] text-gray-400">رمز الخصم المستخدم</span>
-                <span className="text-xs text-[#dfba73] font-mono font-bold">{sampleGuest.promoCode}</span>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -298,7 +310,7 @@ export default function Reservation({ onBack }: ReservationProps) {
               <div className="space-y-2 text-center">
                 <h3 className="font-serif text-lg font-bold text-red-400">تأكيد إلغاء الحجز</h3>
                 <p className="text-xs text-gray-300 leading-relaxed">
-                  هل أنت متأكد من رغبتك في إلغاء حجزك رقم {sampleGuest.reservationNumber}؟ قد يتم تطبيق رسوم إلغاء حسب سياسة الفندق.
+                  هل أنت متأكد من رغبتك في إلغاء حجزك رقم {reservationNumber}؟ قد يتم تطبيق رسوم إلغاء حسب سياسة الفندق.
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-2">

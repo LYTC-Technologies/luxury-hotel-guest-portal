@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, ShoppingBag, Plus, Minus, ArrowLeft, Trash2, CheckCircle2 } from 'lucide-react';
-import { foodItems, foodCategories, favoriteOrders } from '../data';
+import { foodCategories, favoriteOrders } from '../data';
 import { FoodItem, CartItem } from '../types';
+import { getMenu, MenuItemResponse } from '../services/guestService';
 
 interface RoomServiceProps {
   onBack: () => void;
@@ -28,6 +29,35 @@ export default function RoomService({ onBack, onAddOrder }: RoomServiceProps) {
   const [showCart, setShowCart] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [instructions, setInstructions] = useState('');
+  const [foodItems, setFoodItems] = useState<FoodItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch menu items from API
+  useEffect(() => {
+    const fetchMenuItems = async () => {
+      try {
+        setLoading(true);
+        const response = await getMenu();
+        // Convert API response to FoodItem format
+        const items: FoodItem[] = response.content.map((item: MenuItemResponse) => ({
+          id: item.id.toString(),
+          name: item.name,
+          description: item.description,
+          price: parseFloat(item.price),
+          image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80', // Default image
+          category: item.category as FoodItem['category'],
+          available: item.available,
+        }));
+        setFoodItems(items);
+      } catch (error) {
+        console.error('Failed to fetch menu items:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMenuItems();
+  }, []);
 
   // Filtering items
   const filteredItems = foodItems.filter((item) => {
@@ -236,7 +266,16 @@ export default function RoomService({ onBack, onAddOrder }: RoomServiceProps) {
 
       {/* Food Items Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4" id="food-list">
-        {filteredItems.map((item) => (
+        {loading ? (
+          <div className="col-span-full text-center py-12">
+            <div className="text-gray-400 text-sm">جاري تحميل القائمة...</div>
+          </div>
+        ) : filteredItems.length === 0 ? (
+          <div className="col-span-full text-center py-12">
+            <div className="text-gray-400 text-sm">لا توجد عناصر متاحة</div>
+          </div>
+        ) : (
+          filteredItems.map((item) => (
           <div
             key={item.id}
             id={`food-card-${item.id}`}
@@ -300,7 +339,7 @@ export default function RoomService({ onBack, onAddOrder }: RoomServiceProps) {
               </div>
             </div>
           </div>
-        ))}
+        )))}
       </div>
 
       {/* Cart Drawer / Overlay modal */}

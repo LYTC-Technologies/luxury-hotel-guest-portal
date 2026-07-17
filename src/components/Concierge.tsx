@@ -28,8 +28,8 @@ export default function Concierge({ onBack, onAddOrder }: ConciergeProps) {
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [requestDetails, setRequestDetails] = useState('');
   const [chatOpen, setChatOpen] = useState(false);
-  const [chatMessages, setChatMessages] = useState([
-    { id: '1', sender: 'concierge' as const, text: 'مرحباً بك! أنا أحمد، كونسيرجك الشخصي. كيف يمكنني مساعدتك اليوم؟', time: 'الآن' },
+  const [chatMessages, setChatMessages] = useState<Array<{ id: string; sender: 'concierge' | 'guest'; text: string; time: string }>>([
+    { id: '1', sender: 'concierge', text: 'مرحباً بك! أنا أحمد، كونسيرجك الشخصي. كيف يمكنني مساعدتك اليوم؟', time: 'الآن' },
   ]);
   const [chatInput, setChatInput] = useState('');
   const [success, setSuccess] = useState(false);

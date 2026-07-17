@@ -6,13 +6,27 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CreditCard, Download, Star, MessageSquare, Car, Luggage, Calendar, CheckCircle, AlertCircle, ChevronDown, Plane, Home, Receipt, FileText } from 'lucide-react';
-import { sampleGuest, currentInvoice } from '../data';
+import { currentInvoice } from '../data';
 
 interface CheckOutProps {
   onBack: () => void;
+  roomNumber?: string;
+  checkOutDate?: string;
+  totalAmount?: number;
+  paidAmount?: number;
+  balanceDue?: number;
+  loyaltyPoints?: number;
 }
 
-export default function CheckOut({ onBack }: CheckOutProps) {
+export default function CheckOut({ 
+  onBack,
+  roomNumber = '---',
+  checkOutDate = '---',
+  totalAmount = 0,
+  paidAmount = 0,
+  balanceDue = 0,
+  loyaltyPoints = 0
+}: CheckOutProps) {
   const [step, setStep] = useState(1);
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState('');
@@ -97,15 +111,15 @@ export default function CheckOut({ onBack }: CheckOutProps) {
               <div className="pt-3 border-t border-white/10 space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-gray-400">إجمالي المبلغ</span>
-                  <span className="text-sm text-white font-mono">{sampleGuest.totalAmount.toLocaleString('ar-SA')} ر.س</span>
+                  <span className="text-sm text-white font-mono">{totalAmount.toLocaleString('ar-SA')} ر.س</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-gray-400">المدفوع مسبقاً</span>
-                  <span className="text-sm text-emerald-400 font-mono">-{sampleGuest.paidAmount.toLocaleString('ar-SA')} ر.س</span>
+                  <span className="text-sm text-emerald-400 font-mono">-{paidAmount.toLocaleString('ar-SA')} ر.س</span>
                 </div>
                 <div className="flex justify-between items-center pt-2 border-t border-white/10">
                   <span className="text-sm font-bold text-white">الرصيد المستحق</span>
-                  <span className="text-lg font-bold text-[#dfba73] font-mono">{sampleGuest.balanceDue.toLocaleString('ar-SA')} ر.س</span>
+                  <span className="text-lg font-bold text-[#dfba73] font-mono">{balanceDue.toLocaleString('ar-SA')} ر.س</span>
                 </div>
               </div>
             </div>
@@ -295,7 +309,7 @@ export default function CheckOut({ onBack }: CheckOutProps) {
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between">
                   <span className="text-gray-400">تاريخ المغادرة</span>
-                  <span className="text-white">{sampleGuest.checkOutDate}</span>
+                  <span className="text-white">{checkOutDate}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">وقت المغادرة</span>
@@ -347,17 +361,17 @@ export default function CheckOut({ onBack }: CheckOutProps) {
               <div className="space-y-3 pt-4 border-t border-white/10">
                 <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
                   <Home className="w-4 h-4" />
-                  <span>الجناح {sampleGuest.roomNumber}</span>
+                  <span>الجناح {roomNumber}</span>
                 </div>
                 <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
                   <Calendar className="w-4 h-4" />
-                  <span>{sampleGuest.checkOutDate}</span>
+                  <span>{checkOutDate}</span>
                 </div>
               </div>
 
               <div className="bg-[#dfba73]/10 border border-[#dfba73]/20 rounded-xl p-4">
                 <div className="text-xs text-[#dfba73] font-medium mb-2">نقاط الولاء المكتسبة</div>
-                <div className="text-2xl font-bold text-[#dfba73] font-mono">{sampleGuest.loyaltyPoints.toLocaleString('ar-SA')}</div>
+                <div className="text-2xl font-bold text-[#dfba73] font-mono">{loyaltyPoints.toLocaleString('ar-SA')}</div>
                 <div className="text-[10px] text-gray-400 mt-1">نقطة</div>
               </div>
             </div>

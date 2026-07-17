@@ -6,13 +6,29 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Upload, FileText, Clock, CheckCircle, AlertCircle, ChevronDown, CreditCard, Bed, Coffee, Wifi, Shield, User, Calendar, MapPin } from 'lucide-react';
-import { sampleGuest } from '../data';
+import { hotelDetails } from '../data';
 
 interface CheckInProps {
   onBack: () => void;
+  guestPhone?: string;
+  guestName?: string;
+  guestLastName?: string;
+  roomNumber?: string;
+  roomType?: string;
+  checkInDate?: string;
+  checkOutDate?: string;
 }
 
-export default function CheckIn({ onBack }: CheckInProps) {
+export default function CheckIn({ 
+  onBack, 
+  guestPhone = hotelDetails.phone,
+  guestName = 'الضيف الكريم',
+  guestLastName = '',
+  roomNumber = '---',
+  roomType = '---',
+  checkInDate = '---',
+  checkOutDate = '---'
+}: CheckInProps) {
   const [step, setStep] = useState(1);
   const [uploading, setUploading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<{ passport: boolean; id: boolean }>({ passport: false, id: false });
@@ -190,7 +206,7 @@ export default function CheckIn({ onBack }: CheckInProps) {
                   <div className="flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
                     <p className="text-[10px] text-amber-300 leading-relaxed">
-                      في حال الوصول المتأخر، يرجى التواصل مع الاستقبال على الرقم {sampleGuest.phone} لضمان استقبالك.
+                      في حال الوصول المتأخر، يرجى التواصل مع الاستقبال على الرقم {guestPhone} لضمان استقبالك.
                     </p>
                   </div>
                 </div>
@@ -371,7 +387,7 @@ export default function CheckIn({ onBack }: CheckInProps) {
                 <div className="flex items-center gap-3">
                   <User className="w-4 h-4 text-gray-500" />
                   <div>
-                    <div className="text-xs text-white">{sampleGuest.name} {sampleGuest.lastName}</div>
+                    <div className="text-xs text-white">{guestName} {guestLastName}</div>
                     <div className="text-[10px] text-gray-500">الضيف</div>
                   </div>
                 </div>
@@ -379,15 +395,15 @@ export default function CheckIn({ onBack }: CheckInProps) {
                 <div className="flex items-center gap-3">
                   <Bed className="w-4 h-4 text-gray-500" />
                   <div>
-                    <div className="text-xs text-white">الجناح {sampleGuest.roomNumber}</div>
-                    <div className="text-[10px] text-gray-500">{sampleGuest.roomType}</div>
+                    <div className="text-xs text-white">الجناح {roomNumber}</div>
+                    <div className="text-[10px] text-gray-500">{roomType}</div>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3">
                   <Calendar className="w-4 h-4 text-gray-500" />
                   <div>
-                    <div className="text-xs text-white">{sampleGuest.checkInDate} - {sampleGuest.checkOutDate}</div>
+                    <div className="text-xs text-white">{checkInDate} - {checkOutDate}</div>
                     <div className="text-[10px] text-gray-500">تواريخ الإقامة</div>
                   </div>
                 </div>
@@ -403,7 +419,7 @@ export default function CheckIn({ onBack }: CheckInProps) {
                 <div className="flex items-center gap-3">
                   <MapPin className="w-4 h-4 text-gray-500" />
                   <div>
-                    <div className="text-xs text-white">{sampleGuest.hotelName}</div>
+                    <div className="text-xs text-white">{hotelDetails.name}</div>
                     <div className="text-[10px] text-gray-500">موقع الفندق</div>
                   </div>
                 </div>

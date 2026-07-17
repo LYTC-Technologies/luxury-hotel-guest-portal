@@ -29,8 +29,8 @@ const responses: Record<string, string> = {
 };
 
 export default function TravelAssistant({ onBack }: TravelAssistantProps) {
-  const [messages, setMessages] = useState([
-    { id: '0', sender: 'bot' as const, text: 'مرحباً! أنا مساعد السفر الذكي. كيف يمكنني مساعدتك في رحلتك بالرياض؟' },
+  const [messages, setMessages] = useState<Array<{ id: string; sender: 'bot' | 'guest'; text: string }>>([
+    { id: '0', sender: 'bot', text: 'مرحباً! أنا مساعد السفر الذكي. كيف يمكنني مساعدتك في رحلتك بالرياض؟' },
   ]);
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);

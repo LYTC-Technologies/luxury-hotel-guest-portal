@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Percent, Sparkles, CheckCircle } from 'lucide-react';
-import { offers } from '../data';
+import { getSpecialOffers, SpecialOfferResponse } from '../services/guestService';
+import { Offer } from '../types';
 
 interface OffersProps {
   onBack: () => void;
@@ -20,6 +21,34 @@ interface OffersProps {
 
 export default function Offers({ onBack, onAddOrder }: OffersProps) {
   const [redeemedOfferId, setRedeemedOfferId] = useState<string | null>(null);
+  const [offers, setOffers] = useState<Offer[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch special offers from API
+  useEffect(() => {
+    const fetchOffers = async () => {
+      try {
+        setLoading(true);
+        const response = await getSpecialOffers();
+        // Convert API response to Offer format
+        const items: Offer[] = response.content.map((item: SpecialOfferResponse) => ({
+          id: item.id.toString(),
+          title: item.title,
+          description: item.description,
+          image: 'https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?auto=format&fit=crop&w=800&q=80', // Default image
+          discount: 'عرض خاص',
+          code: `OFFER-${item.id}`,
+        }));
+        setOffers(items);
+      } catch (error) {
+        console.error('Failed to fetch special offers:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOffers();
+  }, []);
 
   const handleRedeem = (offerId: string) => {
     const offer = offers.find((o) => o.id === offerId);
@@ -61,7 +90,16 @@ export default function Offers({ onBack, onAddOrder }: OffersProps) {
 
       {/* Offers list */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {offers.map((off) => {
+        {loading ? (
+          <div className="col-span-full text-center py-12">
+            <div className="text-gray-400 text-sm">جاري تحميل العروض...</div>
+          </div>
+        ) : offers.length === 0 ? (
+          <div className="col-span-full text-center py-12">
+            <div className="text-gray-400 text-sm">لا توجد عروض متاحة حالياً</div>
+          </div>
+        ) : (
+          offers.map((off) => {
           const isRedeemed = redeemedOfferId === off.id;
 
           return (
@@ -128,7 +166,7 @@ export default function Offers({ onBack, onAddOrder }: OffersProps) {
               </div>
             </div>
           );
-        })}
+        }))}
       </div>
     </div>
   );

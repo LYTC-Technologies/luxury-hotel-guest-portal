@@ -6,6 +6,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PhoneCall, AlertTriangle, ShieldCheck, X, Search } from 'lucide-react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 // Data & Types
 import { Guest, Order, Notification } from './types';
@@ -40,11 +41,12 @@ import Reviews from './components/Reviews';
 import Wallet from './components/Wallet';
 import StayTimeline from './components/StayTimeline';
 
-export default function App() {
+function AppContent() {
   const [loading, setLoading] = useState(true);
   const [guest, setGuest] = useState<Guest | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [activeService, setActiveService] = useState<string | null>(null);
+  const location = useLocation();
   
   // Real state for orders and notifications
   const [orders, setOrders] = useState<Order[]>([
@@ -211,6 +213,17 @@ export default function App() {
     }
   };
 
+  // Sync URL with state
+  useEffect(() => {
+    if (activeService) {
+      window.history.pushState({}, '', `/${activeService}`);
+    } else if (activeTab === 'home') {
+      window.history.pushState({}, '', '/');
+    } else {
+      window.history.pushState({}, '', `/${activeTab}`);
+    }
+  }, [activeService, activeTab]);
+
   // Helper to render the active tab contents or active nested service screen
   const renderMainContent = () => {
     if (!guest) return null;
@@ -243,11 +256,39 @@ export default function App() {
         case 'faq':
           return <Profile guest={guest} onLogout={handleLogout} />;
         case 'reservation':
-          return <Reservation onBack={() => setActiveService(null)} />;
+          return <Reservation 
+            onBack={() => setActiveService(null)} 
+            guestName={guest.name}
+            guestLastName={guest.lastName}
+            reservationNumber={guest.reservationNumber}
+            email={guest.email}
+            phone={guest.phone}
+            roomNumber={guest.roomNumber}
+            roomType={guest.roomType}
+            checkInDate={guest.checkInDate}
+            checkOutDate={guest.checkOutDate}
+          />;
         case 'check_in':
-          return <CheckIn onBack={() => setActiveService(null)} />;
+          return <CheckIn 
+            onBack={() => setActiveService(null)} 
+            guestPhone={guest.phone}
+            guestName={guest.name}
+            guestLastName={guest.lastName}
+            roomNumber={guest.roomNumber}
+            roomType={guest.roomType}
+            checkInDate={guest.checkInDate}
+            checkOutDate={guest.checkOutDate}
+          />;
         case 'check_out':
-          return <CheckOut onBack={() => setActiveService(null)} />;
+          return <CheckOut 
+            onBack={() => setActiveService(null)} 
+            roomNumber={guest.roomNumber}
+            checkOutDate={guest.checkOutDate}
+            totalAmount={guest.totalAmount}
+            paidAmount={guest.paidAmount}
+            balanceDue={guest.balanceDue}
+            loyaltyPoints={guest.loyaltyPoints}
+          />;
         case 'my_room':
           return <MyRoom guest={guest} onBack={() => setActiveService(null)} onAddOrder={handleAddOrder} />;
         case 'concierge':
@@ -506,5 +547,13 @@ export default function App() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
+    </BrowserRouter>
   );
 }

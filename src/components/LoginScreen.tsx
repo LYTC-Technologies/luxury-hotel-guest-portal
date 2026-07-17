@@ -31,24 +31,10 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
     setLoading(true);
     setError('');
 
-    // Simulate luxury authentication latency
+    // Simulate login delay
     setTimeout(() => {
       setLoading(false);
-      // We accept the exact sample guest or any input for demo convenience (but prefill or validate gracefully)
-      const cleanRoom = roomNumber.trim();
-      const cleanLast = lastName.trim();
-      const cleanRes = reservationNumber.trim();
-
-      // If user inputs anything, log them in as a Guest using their name or standard guest
-      const guestObj: Guest = {
-        ...sampleGuest,
-        name: cleanLast === sampleGuest.lastName ? sampleGuest.name : 'الضيف الكريم',
-        lastName: cleanLast,
-        roomNumber: cleanRoom,
-        reservationNumber: cleanRes,
-      };
-
-      onLoginSuccess(guestObj);
+      onLoginSuccess(sampleGuest);
     }, 1500);
   };
 
@@ -107,7 +93,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
             id="btn-autofill"
           >
             <span>✨</span>
-            تعبئة تلقائية لبيانات الضيف التجريبية (تجربة سريعة)
+            تعبئة تلقائية للتجربة السريعة
           </button>
         </div>
 
