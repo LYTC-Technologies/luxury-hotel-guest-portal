@@ -50,10 +50,13 @@ function AppContent() {
 
   // Restore state from localStorage on mount
   useEffect(() => {
+    const savedGuest = localStorage.getItem('guest');
     const savedTab = localStorage.getItem('activeTab') as TabType;
     const savedService = localStorage.getItem('activeService');
 
-    // Don't restore guest - always show login screen
+    if (savedGuest) {
+      setGuest(JSON.parse(savedGuest));
+    }
     if (savedTab) {
       setActiveTab(savedTab);
     }
@@ -63,14 +66,14 @@ function AppContent() {
     setLoading(false);
   }, []);
 
-  // Don't save guest state to localStorage - always show login on refresh
-  // useEffect(() => {
-  //   if (guest) {
-  //     localStorage.setItem('guest', JSON.stringify(guest));
-  //   } else {
-  //     localStorage.removeItem('guest');
-  //   }
-  // }, [guest]);
+  // Save guest state to localStorage
+  useEffect(() => {
+    if (guest) {
+      localStorage.setItem('guest', JSON.stringify(guest));
+    } else {
+      localStorage.removeItem('guest');
+    }
+  }, [guest]);
 
   // Save activeTab and activeService to localStorage
   useEffect(() => {
