@@ -66,6 +66,16 @@ function AppContent() {
     setLoading(false);
   }, []);
 
+  // Force URL to home when on login screen
+  useEffect(() => {
+    if (!guest && !loading) {
+      const hash = window.location.hash.replace('#', '');
+      if (hash !== '/' && hash !== '') {
+        window.location.hash = '/';
+      }
+    }
+  }, [guest, loading]);
+
   // Save guest state to sessionStorage (cleared on browser close)
   useEffect(() => {
     if (guest) {
@@ -271,7 +281,7 @@ function AppContent() {
   useEffect(() => {
     const hash = window.location.hash.replace('#', '');
     
-    // If on login screen, ignore URL changes
+    // If on login screen, force URL to home
     if (!guest) {
       if (hash !== '/' && hash !== '') {
         window.location.hash = '/';
@@ -297,7 +307,7 @@ function AppContent() {
         setActiveService(null);
       }
     }
-  }, [location, guest]);
+  }, [guest]);
 
   // Helper to render the active tab contents or active nested service screen
   const renderMainContent = () => {
