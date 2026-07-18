@@ -267,6 +267,38 @@ function AppContent() {
     }
   }, [activeService, activeTab]);
 
+  // Handle URL changes from user input
+  useEffect(() => {
+    const hash = window.location.hash.replace('#', '');
+    
+    // If on login screen, ignore URL changes
+    if (!guest) {
+      if (hash !== '/' && hash !== '') {
+        window.location.hash = '/';
+      }
+      return;
+    }
+
+    // If logged in, parse URL and update state
+    if (hash === '/' || hash === '') {
+      setActiveTab('home');
+      setActiveService(null);
+    } else if (hash.startsWith('/')) {
+      const path = hash.substring(1);
+      
+      // Check if it's a service or a tab
+      const services = ['room_service', 'laundry', 'spa', 'restaurant', 'taxi', 'maintenance', 'reception', 'bills', 'activities', 'offers', 'reservation', 'check_in', 'check_out', 'my_room', 'concierge', 'facilities', 'loyalty', 'reviews', 'wallet', 'stay_timeline'];
+      const tabs = ['home', 'requests', 'profile', 'notifications'];
+      
+      if (services.includes(path)) {
+        setActiveService(path);
+      } else if (tabs.includes(path)) {
+        setActiveTab(path as TabType);
+        setActiveService(null);
+      }
+    }
+  }, [location, guest]);
+
   // Helper to render the active tab contents or active nested service screen
   const renderMainContent = () => {
     if (!guest) return null;
