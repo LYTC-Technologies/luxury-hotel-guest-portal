@@ -50,7 +50,7 @@ function AppContent() {
 
   // Restore state from localStorage on mount
   useEffect(() => {
-    const savedGuest = localStorage.getItem('guest');
+    const savedGuest = sessionStorage.getItem('guest');
     const savedTab = localStorage.getItem('activeTab') as TabType;
     const savedService = localStorage.getItem('activeService');
 
@@ -66,12 +66,12 @@ function AppContent() {
     setLoading(false);
   }, []);
 
-  // Save guest state to localStorage
+  // Save guest state to sessionStorage (cleared on browser close)
   useEffect(() => {
     if (guest) {
-      localStorage.setItem('guest', JSON.stringify(guest));
+      sessionStorage.setItem('guest', JSON.stringify(guest));
     } else {
-      localStorage.removeItem('guest');
+      sessionStorage.removeItem('guest');
     }
   }, [guest]);
 
@@ -162,7 +162,7 @@ function AppContent() {
       }
     ]);
     setNotifications(initialNotifications);
-    localStorage.removeItem('guest');
+    sessionStorage.removeItem('guest');
     localStorage.removeItem('activeTab');
     localStorage.removeItem('activeService');
   };
