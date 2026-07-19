@@ -35,11 +35,7 @@ guestClient.interceptors.response.use(
       originalRequest._retry = true;
       try {
         const refreshToken = localStorage.getItem('refreshToken');
-        const response = await axios.post(`${API_BASE_URL}/api/auth/refresh`, {}, {
-          headers: {
-            Cookie: `refreshToken=${refreshToken}`,
-          },
-        });
+        const response = await axios.post(`${API_BASE_URL}/api/auth/refresh`, { refreshToken });
         const { token } = response.data;
         localStorage.setItem('accessToken', token);
         originalRequest.headers.Authorization = `Bearer ${token}`;

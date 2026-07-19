@@ -139,6 +139,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="w-full px-5 py-3.5 bg-black/50 hover:bg-black/70 focus:bg-black/80 rounded-xl border border-white/10 focus:border-[#dfba73] text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-[#dfba73] transition-all duration-300 text-right text-base font-sans"
+              style={{ color: 'white' }}
             />
           </div>
 
@@ -155,6 +156,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-5 py-3.5 bg-black/50 hover:bg-black/70 focus:bg-black/80 rounded-xl border border-white/10 focus:border-[#dfba73] text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-[#dfba73] transition-all duration-300 text-right text-base font-sans"
+              style={{ color: 'white' }}
             />
           </div>
 
