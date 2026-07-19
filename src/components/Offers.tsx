@@ -5,9 +5,10 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Percent, Sparkles, CheckCircle } from 'lucide-react';
-import { getSpecialOffers, SpecialOfferResponse } from '../services/guestService';
+import { ArrowLeft, Percent, Sparkles, CheckCircle, Loader2 } from 'lucide-react';
+import { getSpecialOffers, SpecialOfferResponse } from '../services/guestApi';
 import { Offer } from '../types';
+import { useRoom } from '../contexts/RoomContext';
 
 interface OffersProps {
   onBack: () => void;
@@ -23,32 +24,50 @@ export default function Offers({ onBack, onAddOrder }: OffersProps) {
   const [redeemedOfferId, setRedeemedOfferId] = useState<string | null>(null);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const { hasValidRoom } = useRoom();
 
   // Fetch special offers from API
   useEffect(() => {
     const fetchOffers = async () => {
+      if (!hasValidRoom) {
+        setError('يرجى تسجيل الدخول أولاً');
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        const response = await getSpecialOffers();
+        setError(null);
+        const response = await getSpecialOffers({
+          page: currentPage,
+          size: 20,
+        });
+        
         // Convert API response to Offer format
         const items: Offer[] = response.content.map((item: SpecialOfferResponse) => ({
           id: item.id.toString(),
           title: item.title,
           description: item.description,
-          image: 'https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?auto=format&fit=crop&w=800&q=80', // Default image
+          image: 'https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?auto=format&fit=crop&w=800&q=80',
           discount: 'عرض خاص',
           code: `OFFER-${item.id}`,
         }));
+        
         setOffers(items);
-      } catch (error) {
+        setTotalPages(response.totalPages);
+      } catch (error: any) {
         console.error('Failed to fetch special offers:', error);
+        setError(error.response?.data?.message || 'فشل تحميل العروض. يرجى المحاولة مرة أخرى.');
       } finally {
         setLoading(false);
       }
     };
 
     fetchOffers();
-  }, []);
+  }, [currentPage, hasValidRoom]);
 
   const handleRedeem = (offerId: string) => {
     const offer = offers.find((o) => o.id === offerId);
@@ -91,10 +110,30 @@ export default function Offers({ onBack, onAddOrder }: OffersProps) {
       {/* Offers list */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {loading ? (
+          // Loading skeletons
+          Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="glass-panel rounded-2xl overflow-hidden border-white/5 opacity-50">
+              <div className="h-40 bg-gray-800 animate-pulse" />
+              <div className="p-4 space-y-2">
+                <div className="h-4 bg-gray-800 rounded animate-pulse w-3/4" />
+                <div className="h-3 bg-gray-800 rounded animate-pulse w-full" />
+                <div className="h-3 bg-gray-800 rounded animate-pulse w-1/2" />
+              </div>
+            </div>
+          ))
+        ) : error ? (
+          // Error state
           <div className="col-span-full text-center py-12">
-            <div className="text-gray-400 text-sm">جاري تحميل العروض...</div>
+            <div className="text-red-400 text-sm mb-2">⚠️ {error}</div>
+            <button 
+              onClick={() => window.location.reload()}
+              className="text-[#dfba73] text-xs underline"
+            >
+              إعادة المحاولة
+            </button>
           </div>
         ) : offers.length === 0 ? (
+          // Empty state
           <div className="col-span-full text-center py-12">
             <div className="text-gray-400 text-sm">لا توجد عروض متاحة حالياً</div>
           </div>

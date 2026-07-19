@@ -5,10 +5,11 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, ShoppingBag, Plus, Minus, ArrowLeft, Trash2, CheckCircle2 } from 'lucide-react';
-import { foodCategories, favoriteOrders } from '../data';
+import { Search, ShoppingBag, Plus, Minus, ArrowLeft, Trash2, CheckCircle2, Loader2 } from 'lucide-react';
+import { foodCategories } from '../data';
 import { FoodItem, CartItem } from '../types';
-import { getMenu, MenuItemResponse } from '../services/guestService';
+import { getMenu, createOrder, MenuItemResponse } from '../services/guestApi';
+import { useRoom } from '../contexts/RoomContext';
 
 interface RoomServiceProps {
   onBack: () => void;
@@ -31,36 +32,59 @@ export default function RoomService({ onBack, onAddOrder }: RoomServiceProps) {
   const [instructions, setInstructions] = useState('');
   const [foodItems, setFoodItems] = useState<FoodItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [submittingOrder, setSubmittingOrder] = useState(false);
+  const { roomNumber, hasValidRoom } = useRoom();
 
   // Fetch menu items from API
   useEffect(() => {
     const fetchMenuItems = async () => {
+      if (!hasValidRoom) {
+        setError('يرجى تسجيل الدخول أولاً');
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        const response = await getMenu();
+        setError(null);
+        const response = await getMenu(activeCategory === 'all' ? undefined : activeCategory, {
+          page: currentPage,
+          size: 20,
+        });
+        
         // Convert API response to FoodItem format
         const items: FoodItem[] = response.content.map((item: MenuItemResponse) => ({
           id: item.id.toString(),
           name: item.name,
           description: item.description,
           price: parseFloat(item.price),
-          image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80', // Default image
+          image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80',
           category: item.category as FoodItem['category'],
           available: item.available,
+          isVegetarian: false,
+          isHalal: true,
+          isGlutenFree: false,
         }));
+        
         setFoodItems(items);
-      } catch (error) {
+        setTotalPages(response.totalPages);
+      } catch (error: any) {
         console.error('Failed to fetch menu items:', error);
+        setError(error.response?.data?.message || 'فشل تحميل القائمة. يرجى المحاولة مرة أخرى.');
       } finally {
         setLoading(false);
       }
     };
 
     fetchMenuItems();
-  }, []);
+  }, [activeCategory, currentPage, hasValidRoom]);
 
-  // Filtering items
+  // Filtering items - only show available items
   const filteredItems = foodItems.filter((item) => {
+    const matchesAvailable = item.available;
     const matchesCategory = activeCategory === 'all' || item.category === activeCategory;
     const matchesSearch =
       item.name.includes(searchQuery) || item.description.includes(searchQuery);
@@ -69,14 +93,8 @@ export default function RoomService({ onBack, onAddOrder }: RoomServiceProps) {
       (dietFilter === 'vegetarian' && item.isVegetarian) ||
       (dietFilter === 'halal' && item.isHalal) ||
       (dietFilter === 'glutenFree' && item.isGlutenFree);
-    return matchesCategory && matchesSearch && matchesDiet;
+    return matchesAvailable && matchesCategory && matchesSearch && matchesDiet;
   });
-
-  const reorderFavorite = (fav: typeof favoriteOrders[0]) => {
-    const matchedItems = foodItems.filter((item) => fav.items.includes(item.name.split(' ')[0]) || fav.items.includes(item.name));
-    matchedItems.forEach((item) => addToCart(item));
-    setShowCart(true);
-  };
 
   const addToCart = (item: FoodItem) => {
     setCart((prev) => {
@@ -109,28 +127,58 @@ export default function RoomService({ onBack, onAddOrder }: RoomServiceProps) {
     return acc + price * curr.quantity;
   }, 0);
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (cart.length === 0) return;
+    if (!roomNumber) {
+      setError('يرجى تسجيل الدخول أولاً');
+      return;
+    }
 
-    const details = cart
-      .map((i) => `${i.foodItem.name} (عدد ${i.quantity})`)
-      .join(', ') + (instructions ? ` | ملاحظات: ${instructions}` : '');
+    setSubmittingOrder(true);
+    setError(null);
 
-    // Trigger order creation in the main app
-    onAddOrder({
-      type: 'room_service',
-      title: 'طلب خدمة الغرف والمأكولات',
-      details,
-      estimatedDelivery: '٣٥-٤٥ دقيقة'
-    });
+    try {
+      // Build order request body
+      const orderItems = cart.map((item) => ({
+        menuItemId: parseInt(item.foodItem.id),
+        quantity: item.quantity,
+        notes: instructions,
+      }));
 
-    setOrderPlaced(true);
-    setCart([]);
-    setInstructions('');
-    setTimeout(() => {
-      setOrderPlaced(false);
-      setShowCart(false);
-    }, 4000);
+      const orderData = {
+        category: 'FOOD',
+        items: orderItems,
+      };
+
+      // Call the API
+      const response = await createOrder(roomNumber, orderData);
+
+      const details = cart
+        .map((i) => `${i.foodItem.name} (عدد ${i.quantity})`)
+        .join(', ') + (instructions ? ` | ملاحظات: ${instructions}` : '');
+
+      // Trigger order creation in the main app
+      onAddOrder({
+        type: 'room_service',
+        title: 'طلب خدمة الغرف والمأكولات',
+        details,
+        estimatedDelivery: '٣٥-٤٥ دقيقة'
+      });
+
+      setOrderPlaced(true);
+      setCart([]);
+      setInstructions('');
+      
+      setTimeout(() => {
+        setOrderPlaced(false);
+        setShowCart(false);
+      }, 4000);
+    } catch (error: any) {
+      console.error('Failed to create order:', error);
+      setError(error.response?.data?.message || 'فشل إرسال الطلب. يرجى المحاولة مرة أخرى.');
+    } finally {
+      setSubmittingOrder(false);
+    }
   };
 
   return (
@@ -240,39 +288,36 @@ export default function RoomService({ onBack, onAddOrder }: RoomServiceProps) {
         </div>
       </div>
 
-      {/* Favorites & Reorder */}
-      <div className="glass-panel rounded-2xl space-y-3">
-        <button onClick={() => setShowFavorites(!showFavorites)} className="w-full flex justify-between items-center touch-target">
-          <span className="text-xs text-[#dfba73]">{showFavorites ? 'إخفاء' : 'عرض'}</span>
-          <h3 className="font-serif text-sm font-bold text-white">المفضلة وإعادة الطلب السابق</h3>
-        </button>
-        {showFavorites && (
-          <div className="space-y-2">
-            {favoriteOrders.map((fav) => (
-              <div key={fav.id} className="flex justify-between items-center bg-black/20 rounded-xl p-3 border border-white/5">
-                <button onClick={() => reorderFavorite(fav)} className="px-3 py-1.5 bg-[#dfba73]/10 text-[#dfba73] text-[10px] font-bold rounded-lg touch-target">
-                  إعادة الطلب
-                </button>
-                <div className="text-right">
-                  <div className="text-xs font-bold text-white">{fav.title}</div>
-                  <div className="text-[10px] text-gray-500">{fav.items}</div>
-                  <div className="text-[9px] text-gray-600 font-mono">آخر طلب: {fav.lastOrdered}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
       {/* Food Items Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4" id="food-list">
         {loading ? (
+          // Loading skeletons
+          Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="glass-panel rounded-2xl overflow-hidden border-white/5 flex flex-row items-stretch min-h-36 opacity-50">
+              <div className="w-1/3 bg-gray-800 animate-pulse" />
+              <div className="flex-1 p-4 space-y-2">
+                <div className="h-4 bg-gray-800 rounded animate-pulse w-3/4" />
+                <div className="h-3 bg-gray-800 rounded animate-pulse w-1/2" />
+                <div className="h-3 bg-gray-800 rounded animate-pulse w-full" />
+                <div className="h-4 bg-gray-800 rounded animate-pulse w-1/3 mt-2" />
+              </div>
+            </div>
+          ))
+        ) : error ? (
+          // Error state
           <div className="col-span-full text-center py-12">
-            <div className="text-gray-400 text-sm">جاري تحميل القائمة...</div>
+            <div className="text-red-400 text-sm mb-2">⚠️ {error}</div>
+            <button 
+              onClick={() => window.location.reload()}
+              className="text-[#dfba73] text-xs underline"
+            >
+              إعادة المحاولة
+            </button>
           </div>
         ) : filteredItems.length === 0 ? (
+          // Empty state
           <div className="col-span-full text-center py-12">
-            <div className="text-gray-400 text-sm">لا توجد عناصر متاحة</div>
+            <div className="text-gray-400 text-sm">لا توجد عناصر متاحة في هذه الفئة</div>
           </div>
         ) : (
           filteredItems.map((item) => (
@@ -494,10 +539,18 @@ export default function RoomService({ onBack, onAddOrder }: RoomServiceProps) {
 
                   <button
                     onClick={handleCheckout}
-                    className="w-full py-4 bg-gradient-to-r from-[#cbba53] via-[#dfba73] to-[#cbba53] text-black font-bold text-sm rounded-xl hover:shadow-[0_0_15px_rgba(223,186,115,0.3)] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    disabled={submittingOrder}
+                    className="w-full py-4 bg-gradient-to-r from-[#cbba53] via-[#dfba73] to-[#cbba53] text-black font-bold text-sm rounded-xl hover:shadow-[0_0_15px_rgba(223,186,115,0.3)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     id="btn-checkout-room-service"
                   >
-                    <span>تأكيد الطلب الفوري للغرفة</span>
+                    {submittingOrder ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>جاري إرسال الطلب...</span>
+                      </>
+                    ) : (
+                      <span>تأكيد الطلب الفوري للغرفة</span>
+                    )}
                   </button>
                 </div>
               )}

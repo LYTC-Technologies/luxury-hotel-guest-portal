@@ -5,8 +5,9 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Calendar, Users, Clock, Compass, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, Users, Clock, Compass, CheckCircle, Loader2 } from 'lucide-react';
 import { hotelDetails } from '../data';
+import { useRoom } from '../contexts/RoomContext';
 
 interface RestaurantProps {
   onBack: () => void;
@@ -26,6 +27,8 @@ export default function Restaurant({ onBack, onAddOrder }: RestaurantProps) {
   const [specialOccasion, setSpecialOccasion] = useState('');
   const [selectedRestaurant, setSelectedRestaurant] = useState('alba'); // alba / fireplace / oasis
   const [reserved, setReserved] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const { roomNumber, hasValidRoom } = useRoom();
 
   const restaurantsList = [
     {
@@ -51,26 +54,40 @@ export default function Restaurant({ onBack, onAddOrder }: RestaurantProps) {
     }
   ];
 
-  const handleReservation = () => {
-    const restaurantObj = restaurantsList.find((r) => r.id === selectedRestaurant);
-    const seatingText = 
-      seatingPreference === 'outdoor' ? 'جلسة خارجية تطل على النوافير' :
-      seatingPreference === 'indoor' ? 'جلسة داخلية هادئة مكيفة' : 'طاولة VIP خاصة مع حجب الخصوصية';
+  const handleReservation = async () => {
+    if (!hasValidRoom || !roomNumber) {
+      alert('يرجى تسجيل الدخول أولاً');
+      return;
+    }
 
-    const details = `مطعم: ${restaurantObj?.name} | عدد الضيوف: ${guestsCount} | تاريخ: ${selectedDate} | الوقت: ${selectedTime} | الجلسة: ${seatingText}` +
-      (specialOccasion ? ` | مناسبة خاصة: ${specialOccasion}` : '');
+    setSubmitting(true);
 
-    onAddOrder({
-      type: 'restaurant',
-      title: `حجز طاولة في ${restaurantObj?.name}`,
-      details,
-      estimatedDelivery: 'مؤكد فورياً'
-    });
+    try {
+      const restaurantObj = restaurantsList.find((r) => r.id === selectedRestaurant);
+      const seatingText = 
+        seatingPreference === 'outdoor' ? 'جلسة خارجية تطل على النوافير' :
+        seatingPreference === 'indoor' ? 'جلسة داخلية هادئة مكيفة' : 'طاولة VIP خاصة مع حجب الخصوصية';
 
-    setReserved(true);
-    setTimeout(() => {
-      setReserved(false);
-    }, 4000);
+      const details = `مطعم: ${restaurantObj?.name} | عدد الضيوف: ${guestsCount} | تاريخ: ${selectedDate} | الوقت: ${selectedTime} | الجلسة: ${seatingText}` +
+        (specialOccasion ? ` | مناسبة خاصة: ${specialOccasion}` : '');
+
+      onAddOrder({
+        type: 'restaurant',
+        title: `حجز طاولة في ${restaurantObj?.name}`,
+        details,
+        estimatedDelivery: 'مؤكد فورياً'
+      });
+
+      setReserved(true);
+      setTimeout(() => {
+        setReserved(false);
+      }, 4000);
+    } catch (error) {
+      console.error('Reservation error:', error);
+      alert('فشل إرسال الحجز. يرجى المحاولة مرة أخرى.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -212,10 +229,18 @@ export default function Restaurant({ onBack, onAddOrder }: RestaurantProps) {
 
               <button
                 onClick={handleReservation}
-                className="w-full py-4 bg-gradient-to-r from-[#cbba53] via-[#dfba73] to-[#cbba53] text-black font-bold text-xs rounded-xl hover:shadow-[0_0_15px_rgba(223,186,115,0.3)] transition-all cursor-pointer"
+                disabled={submitting}
+                className="w-full py-4 bg-gradient-to-r from-[#cbba53] via-[#dfba73] to-[#cbba53] text-black font-bold text-xs rounded-xl hover:shadow-[0_0_15px_rgba(223,186,115,0.3)] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 id="btn-confirm-reservation"
               >
-                حجز الطاولة وتأكيد المضيف فوراً
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>جاري إرسال الحجز...</span>
+                  </>
+                ) : (
+                  <span>حجز الطاولة وتأكيد المضيف فوراً</span>
+                )}
               </button>
             </div>
 

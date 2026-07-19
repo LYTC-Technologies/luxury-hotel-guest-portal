@@ -5,8 +5,11 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { sampleGuest, hotelDetails } from '../data';
+import { hotelDetails } from '../data';
 import { Guest } from '../types';
+import { login } from '../services/guestApi';
+import { getStayDetails } from '../services/guestApi';
+import { useRoom } from '../contexts/RoomContext';
 
 interface LoginScreenProps {
   onLoginSuccess: (guest: Guest) => void;
@@ -14,16 +17,16 @@ interface LoginScreenProps {
 }
 
 export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
-  const [roomNumber, setRoomNumber] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [reservationNumber, setReservationNumber] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showForgotModal, setShowForgotModal] = useState(false);
+  const { setRoomNumber } = useRoom();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!roomNumber.trim() || !lastName.trim() || !reservationNumber.trim()) {
+    if (!username.trim() || !password.trim()) {
       setError('يرجى ملء جميع الحقول المطلوبة للمتابعة.');
       return;
     }
@@ -31,18 +34,56 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
     setLoading(true);
     setError('');
 
-    // Simulate login delay
-    setTimeout(() => {
+    try {
+      // Login using the API
+      const loginResponse = await login({ username, password });
+      
+      // Save JWT tokens
+      localStorage.setItem('accessToken', loginResponse.token);
+      localStorage.setItem('refreshToken', loginResponse.refreshToken);
+      
+      // Set room number in RoomContext
+      setRoomNumber(username);
+      
+      // Fetch guest details using the room number
+      const stayDetails = await getStayDetails(username);
+      
+      // Create Guest object from API response
+      const guest: Guest = {
+        name: stayDetails.guestName,
+        lastName: '', // Last name not provided in stay details
+        roomNumber: stayDetails.roomNumber,
+        reservationNumber: `RA-${stayDetails.roomNumber}`, // Generate reservation number as RA-{RoomNumber}
+        checkInDate: stayDetails.checkInTime,
+        checkOutDate: stayDetails.expectedCheckOutDate,
+        hotelName: hotelDetails.name,
+        roomType: stayDetails.description,
+        bedType: 'King Size', // Default value
+        guestCount: stayDetails.numAdults,
+        childrenCount: stayDetails.numKids,
+        loyaltyPoints: 0, // Not provided in API
+        balanceDue: stayDetails.totalCharge - stayDetails.roomCharge,
+        paidAmount: stayDetails.roomCharge,
+        totalAmount: stayDetails.totalCharge,
+        taxes: 0, // Not provided in API
+        discounts: 0, // Not provided in API
+        promoCode: '', // Not provided in API
+        reservationStatus: stayDetails.status === 'CHECKED_IN' ? 'مؤكد' as const : 
+                          stayDetails.status === 'CHECKED_OUT' ? 'ملغى' as const : 
+                          'قيد المراجعة' as const,
+        email: '', // Not provided in API
+        phone: stayDetails.guestPhone,
+      };
+      
+      // Save guest info in localStorage
+      localStorage.setItem('guestInfo', JSON.stringify(guest));
+      
+      onLoginSuccess(guest);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'فشل تسجيل الدخول. يرجى التحقق من رقم الغرفة وكلمة المرور.');
+    } finally {
       setLoading(false);
-      onLoginSuccess(sampleGuest);
-    }, 1500);
-  };
-
-  const handleAutoFill = () => {
-    setRoomNumber(sampleGuest.roomNumber);
-    setLastName(sampleGuest.lastName);
-    setReservationNumber(sampleGuest.reservationNumber);
-    setError('');
+    }
   };
 
   return (
@@ -84,65 +125,36 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
           <div className="w-12 h-[1px] bg-[#dfba73]/30 mx-auto mt-4" />
         </div>
 
-        {/* Demo Helper Button */}
-        <div className="mb-6 text-center">
-          <button
-            type="button"
-            onClick={handleAutoFill}
-            className="text-[11px] text-[#dfba73]/80 hover:text-[#dfba73] border border-[#dfba73]/20 hover:border-[#dfba73]/50 bg-[#dfba73]/5 hover:bg-[#dfba73]/10 px-4 py-1.5 rounded-full transition-all duration-300 ease-out flex items-center gap-1.5 mx-auto font-sans"
-            id="btn-autofill"
-          >
-            <span>✨</span>
-            تعبئة تلقائية للتجربة السريعة
-          </button>
-        </div>
-
         <form onSubmit={handleSubmit} className="space-y-5" id="login-form">
-          {/* Room Number Input */}
+          {/* Username (Room Number) Input */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-gray-300 mr-1" htmlFor="roomNumber">
-              رقم الغرفة أو الجناح <span className="text-[#dfba73]">*</span>
+            <label className="block text-xs font-medium text-gray-300 mr-1" htmlFor="username">
+              رقم الغرفة (اسم المستخدم) <span className="text-[#dfba73]">*</span>
             </label>
             <input
-              id="roomNumber"
+              id="username"
               type="text"
               required
               placeholder="مثال: 702"
-              value={roomNumber}
-              onChange={(e) => setRoomNumber(e.target.value)}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               className="w-full px-5 py-3.5 bg-black/50 hover:bg-black/70 focus:bg-black/80 rounded-xl border border-white/10 focus:border-[#dfba73] text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-[#dfba73] transition-all duration-300 text-right text-base font-sans"
             />
           </div>
 
-          {/* Last Name Input */}
+          {/* Password Input */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-gray-300 mr-1" htmlFor="lastName">
-              اسم العائلة للنزيل <span className="text-[#dfba73]">*</span>
+            <label className="block text-xs font-medium text-gray-300 mr-1" htmlFor="password">
+              كلمة المرور <span className="text-[#dfba73]">*</span>
             </label>
             <input
-              id="lastName"
-              type="text"
+              id="password"
+              type="password"
               required
-              placeholder="مثال: آل سعود"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
+              placeholder="كلمة المرور"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className="w-full px-5 py-3.5 bg-black/50 hover:bg-black/70 focus:bg-black/80 rounded-xl border border-white/10 focus:border-[#dfba73] text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-[#dfba73] transition-all duration-300 text-right text-base font-sans"
-            />
-          </div>
-
-          {/* Reservation Number Input */}
-          <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-gray-300 mr-1" htmlFor="reservationNumber">
-              رقم الحجز الفندقي <span className="text-[#dfba73]">*</span>
-            </label>
-            <input
-              id="reservationNumber"
-              type="text"
-              required
-              placeholder="مثال: RA-982341"
-              value={reservationNumber}
-              onChange={(e) => setReservationNumber(e.target.value)}
-              className="w-full px-5 py-3.5 bg-black/50 hover:bg-black/70 focus:bg-black/80 rounded-xl border border-white/10 focus:border-[#dfba73] text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-[#dfba73] transition-all duration-300 text-right text-base font-sans font-mono"
             />
           </div>
 
@@ -181,12 +193,12 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
 
           <div className="text-center pt-2">
             <button
-              id="btn-forgot-reservation"
+              id="btn-forgot-password"
               type="button"
               onClick={() => setShowForgotModal(true)}
               className="text-xs text-gray-400 hover:text-[#dfba73] transition-colors duration-200"
             >
-              نسيت رقم الحجز الخاص بك؟
+              نسيت كلمة المرور؟
             </button>
           </div>
         </form>

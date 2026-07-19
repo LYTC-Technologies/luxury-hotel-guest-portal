@@ -10,7 +10,11 @@ import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-d
 
 // Data & Types
 import { Guest, Order, Notification } from './types';
-import { sampleGuest, initialNotifications } from './data';
+import { initialNotifications } from './data';
+import { logout } from './services/guestApi';
+import { RoomProvider } from './contexts/RoomContext';
+import { getOrderHistory, cancelOrder } from './services/guestApi';
+import { useRoom } from './contexts/RoomContext';
 
 // Components
 import LoadingScreen from './components/LoadingScreen';
@@ -47,16 +51,33 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [activeService, setActiveService] = useState<string | null>(null);
   const location = useLocation();
+  const { roomNumber } = useRoom();
 
   // Restore state from localStorage on mount
   useEffect(() => {
     const savedGuest = sessionStorage.getItem('guest');
+    const savedGuestInfo = localStorage.getItem('guestInfo');
+    const accessToken = localStorage.getItem('accessToken');
     const savedTab = localStorage.getItem('activeTab') as TabType;
     const savedService = localStorage.getItem('activeService');
 
-    if (savedGuest) {
+    // Restore guest from localStorage if token exists
+    if (accessToken && savedGuestInfo) {
+      try {
+        const guestInfo = JSON.parse(savedGuestInfo);
+        setGuest(guestInfo);
+        sessionStorage.setItem('guest', JSON.stringify(guestInfo));
+      } catch (error) {
+        console.error('Error parsing guest info:', error);
+        localStorage.removeItem('guestInfo');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+      }
+    } else if (savedGuest) {
+      // Fallback to sessionStorage
       setGuest(JSON.parse(savedGuest));
     }
+    
     if (savedTab) {
       setActiveTab(savedTab);
     }
@@ -97,28 +118,42 @@ function AppContent() {
       localStorage.removeItem('activeService');
     }
   }, [activeService]);
+
+  // Fetch order history from API when guest is logged in
+  useEffect(() => {
+    const fetchOrderHistory = async () => {
+      if (!guest || !roomNumber) return;
+
+      try {
+        const response = await getOrderHistory(roomNumber, { page: 0, size: 20 });
+        
+        // Convert API response to Order format
+        const apiOrders: Order[] = response.content.map((order: any) => ({
+          id: order.orderId.toString(),
+          type: order.category === 'FOOD' ? 'room_service' : 
+                order.category === 'DRINK' ? 'room_service' : 
+                order.category === 'SERVICE' ? 'laundry' : 'room_service',
+          title: `طلب #${order.orderId}`,
+          status: order.status === 'COMPLETED' ? 'completed' :
+                  order.status === 'PENDING' ? 'pending' :
+                  order.status === 'CANCELLED' ? 'cancelled' : 'pending',
+          time: new Date(order.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+          estimatedDelivery: order.completedAt ? 'تم التوصيل' : 'قيد المعالجة',
+          details: order.items.map((item: any) => `${item.itemName} (عدد ${item.quantity})`).join(', ')
+        }));
+
+        setOrders(apiOrders);
+      } catch (error) {
+        console.error('Failed to fetch order history:', error);
+        // Keep default orders on error
+      }
+    };
+
+    fetchOrderHistory();
+  }, [guest, roomNumber]);
   
   // Real state for orders and notifications
-  const [orders, setOrders] = useState<Order[]>([
-    {
-      id: 'ord-1',
-      type: 'laundry',
-      title: 'طلب غسيل وكي ملابس متميز',
-      status: 'completed',
-      time: '09:30 صباحاً',
-      estimatedDelivery: 'تم التسليم والتعليق بالخزانة',
-      details: 'بشت ملكي فاخر (عدد ١)، ثوب سعودي ممتاز (عدد ٢)'
-    },
-    {
-      id: 'ord-2',
-      type: 'spa',
-      title: 'جلسة تدليك الظهر بالأحجار البركانية',
-      status: 'preparing',
-      time: '06:00 مساءً',
-      estimatedDelivery: 'اليوم في 06:00 مساءً (مؤكد)',
-      details: 'الخبير: أحمد | الزيوت: دهن العود الكمبودي'
-    }
-  ]);
+  const [orders, setOrders] = useState<Order[]>([]);
 
   const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
   const [showEmergencyModal, setShowEmergencyModal] = useState(false);
@@ -158,23 +193,30 @@ function AppContent() {
   };
 
   // Logout action
-  const handleLogout = () => {
-    setGuest(null);
-    setOrders([
-      {
-        id: 'ord-1',
-        type: 'laundry',
-        title: 'طلب غسيل وكي ملابس متميز',
-        status: 'completed',
-        time: '09:30 صباحاً',
-        estimatedDelivery: 'تم التسليم والتعليق بالخزانة',
-        details: 'بشت ملكي فاخر (عدد ١)، ثوب سعودي ممتاز (عدد ٢)'
-      }
-    ]);
-    setNotifications(initialNotifications);
-    sessionStorage.removeItem('guest');
-    localStorage.removeItem('activeTab');
-    localStorage.removeItem('activeService');
+  const handleLogout = async () => {
+    try {
+      // Call logout API
+      await logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Clear all auth data
+      setGuest(null);
+      setOrders([]);
+      setNotifications(initialNotifications);
+      
+      // Clear localStorage auth data
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('roomNumber');
+      localStorage.removeItem('guestInfo');
+      sessionStorage.removeItem('guest');
+      localStorage.removeItem('activeTab');
+      localStorage.removeItem('activeService');
+      
+      // Redirect to login
+      window.location.hash = '/';
+    }
   };
 
   // Add a new order from sub-services dynamically
@@ -211,6 +253,39 @@ function AppContent() {
     // Switch tab to Requests so they see it!
     setActiveTab('requests');
     setActiveService(null);
+  };
+
+  // Cancel an order
+  const handleCancelOrder = async (orderId: string) => {
+    try {
+      // Try to cancel via API if it's a numeric order ID (from backend)
+      const numericOrderId = parseInt(orderId.replace('ord-', ''));
+      if (!isNaN(numericOrderId)) {
+        await cancelOrder(numericOrderId);
+      }
+
+      // Update local state
+      setOrders((prev) =>
+        prev.map((ord) =>
+          ord.id === orderId ? { ...ord, status: 'cancelled' } : ord
+        )
+      );
+
+      // Add notification
+      const cancelNotif: Notification = {
+        id: `notif-${Math.floor(Math.random() * 10000)}`,
+        title: 'تم إلغاء الطلب',
+        message: `تم إلغاء الطلب #${orderId} بنجاح.`,
+        time: 'الآن',
+        read: false,
+        type: 'info'
+      };
+
+      setNotifications((prev) => [cancelNotif, ...prev]);
+    } catch (error) {
+      console.error('Failed to cancel order:', error);
+      alert('فشل إلغاء الطلب. يرجى المحاولة مرة أخرى.');
+    }
   };
 
   // Mark all notifications read
@@ -487,11 +562,26 @@ function AppContent() {
                           ✅ تم تسليم الخدمة بنجاح
                         </span>
                       )}
+                      {ord.status === 'cancelled' && (
+                        <span className="px-2.5 py-1 bg-red-500/10 text-red-400 border border-red-500/20 text-[10px] font-bold rounded-lg font-sans">
+                          ❌ تم إلغاء الطلب
+                        </span>
+                      )}
 
                       <div className="text-right">
                         <h4 className="text-xs font-bold text-white">{ord.title}</h4>
                         <span className="text-[10px] text-gray-500 font-mono block mt-0.5">{ord.time}</span>
                       </div>
+
+                      {/* Cancel button for pending/preparing orders */}
+                      {(ord.status === 'pending' || ord.status === 'preparing') && (
+                        <button
+                          onClick={() => handleCancelOrder(ord.id)}
+                          className="px-3 py-1.5 bg-red-500/10 text-red-400 border border-red-500/20 text-[10px] font-bold rounded-lg hover:bg-red-500/20 transition-colors cursor-pointer"
+                        >
+                          إلغاء
+                        </button>
+                      )}
                     </div>
 
                     {/* Details content */}
@@ -638,7 +728,9 @@ function AppContent() {
 export default function App() {
   return (
     <HashRouter>
-      <AppContent />
+      <RoomProvider>
+        <AppContent />
+      </RoomProvider>
     </HashRouter>
   );
 }

@@ -36,30 +36,30 @@ export const hotelDetails = {
   emergencyNumbers: ['99', '997', '998'],
 };
 
-// Sample Guest Data (for demo purposes)
-export const sampleGuest = {
-  name: 'محمد',
-  lastName: 'آل سعود',
-  roomNumber: '702',
-  reservationNumber: 'RA-982341',
-  checkInDate: '2024-01-15',
-  checkOutDate: '2024-01-20',
-  hotelName: 'منتجع الأمان والريتز الملكي',
-  roomType: 'جناح ملكي مع إطلالة',
-  bedType: 'King Size',
-  guestCount: 2,
-  childrenCount: 1,
-  loyaltyPoints: 4500,
-  balanceDue: 2500,
-  paidAmount: 7500,
-  totalAmount: 10000,
-  taxes: 1500,
-  discounts: 500,
-  promoCode: 'ROYAL20',
-  reservationStatus: 'مؤكد' as const,
-  email: 'mohammed.alsaud@example.com',
-  phone: '+966 50 123 4567',
-};
+// Sample Guest Data - DEPRECATED: Now fetched from backend API via getStayDetails()
+// export const sampleGuest = {
+//   name: 'محمد',
+//   lastName: 'آل سعود',
+//   roomNumber: '702',
+//   reservationNumber: 'RA-982341',
+//   checkInDate: '2024-01-15',
+//   checkOutDate: '2024-01-20',
+//   hotelName: 'منتجع الأمان والريتز الملكي',
+//   roomType: 'جناح ملكي مع إطلالة',
+//   bedType: 'King Size',
+//   guestCount: 2,
+//   childrenCount: 1,
+//   loyaltyPoints: 4500,
+//   balanceDue: 2500,
+//   paidAmount: 7500,
+//   totalAmount: 10000,
+//   taxes: 1500,
+//   discounts: 500,
+//   promoCode: 'ROYAL20',
+//   reservationStatus: 'مؤكد' as const,
+//   email: 'mohammed.alsaud@example.com',
+//   phone: '+966 50 123 4567',
+// };
 
 export const foodCategories = [
   { id: 'all', name: 'الكل' },
