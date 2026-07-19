@@ -80,7 +80,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
       
       onLoginSuccess(guest);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'فشل تسجيل الدخول. يرجى التحقق من رقم الغرفة وكلمة المرور.');
+      setError(err.response?.data?.message || 'فشل تسجيل الدخول. يرجى التحقق من رقم الغرفة ورقم الحجز.');
     } finally {
       setLoading(false);
     }
@@ -129,7 +129,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
           {/* Username (Room Number) Input */}
           <div className="space-y-1.5">
             <label className="block text-xs font-medium text-gray-300 mr-1" htmlFor="username">
-              رقم الغرفة (اسم المستخدم) <span className="text-[#dfba73]">*</span>
+              رقم الغرفة <span className="text-[#dfba73]">*</span>
             </label>
             <input
               id="username"
@@ -142,16 +142,16 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
             />
           </div>
 
-          {/* Password Input */}
+          {/* Password (Reservation Number) Input */}
           <div className="space-y-1.5">
             <label className="block text-xs font-medium text-gray-300 mr-1" htmlFor="password">
-              كلمة المرور <span className="text-[#dfba73]">*</span>
+              رقم الحجز <span className="text-[#dfba73]">*</span>
             </label>
             <input
               id="password"
-              type="password"
+              type="text"
               required
-              placeholder="كلمة المرور"
+              placeholder="مثال: RA-982341"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-5 py-3.5 bg-black/50 hover:bg-black/70 focus:bg-black/80 rounded-xl border border-white/10 focus:border-[#dfba73] text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-[#dfba73] transition-all duration-300 text-right text-base font-sans"
