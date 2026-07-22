@@ -257,6 +257,18 @@ export const logout = async (): Promise<void> => {
 
 // ==================== MENU APIs ====================
 
+export interface PageMenuItemResponse {
+  content: MenuItemResponse[];
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+  numberOfElements: number;
+  empty: boolean;
+}
+
 /**
  * Get menu items with optional category filter and pagination
  */
@@ -274,18 +286,6 @@ export const getMenu = async (
   
   return get<PageMenuItemResponse>('/api/guest/menu', { params });
 };
-
-export interface PageMenuItemResponse {
-  content: MenuItemResponse[];
-  totalPages: number;
-  totalElements: number;
-  size: number;
-  number: number;
-  first: boolean;
-  last: boolean;
-  numberOfElements: number;
-  empty: boolean;
-}
 
 // ==================== ORDER APIs ====================
 
