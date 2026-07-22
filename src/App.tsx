@@ -9,8 +9,7 @@ import { PhoneCall, AlertTriangle, ShieldCheck, X, Search } from 'lucide-react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 // Data & Types
-import { Guest, Order, Notification } from './types';
-import { initialNotifications } from './data';
+import { Guest, Order } from './types';
 import { logout } from './services/guestApi';
 import { RoomProvider } from './contexts/RoomContext';
 import { getOrderHistory, cancelOrder } from './services/guestApi';
@@ -32,8 +31,6 @@ import Reception from './components/Reception';
 import Bills from './components/Bills';
 import Activities from './components/Activities';
 import Offers from './components/Offers';
-import Notifications from './components/Notifications';
-import Profile from './components/Profile';
 import Reservation from './components/Reservation';
 import CheckIn from './components/CheckIn';
 import CheckOut from './components/CheckOut';
@@ -44,67 +41,29 @@ import Loyalty from './components/Loyalty';
 import Reviews from './components/Reviews';
 import Wallet from './components/Wallet';
 import StayTimeline from './components/StayTimeline';
+import Orders from './components/Orders';
+import { hotelDetails } from './data';
 
 function AppContent() {
   const [loading, setLoading] = useState(true);
   const [guest, setGuest] = useState<Guest | null>(null);
-  const [activeTab, setActiveTab] = useState<TabType>('home');
+  const [activeTab, setActiveTab] = useState<TabType>('services');
   const [activeService, setActiveService] = useState<string | null>(null);
   const location = useLocation();
-  const { roomNumber } = useRoom();
+  const { roomNumber, setRoomNumber: setContextRoomNumber } = useRoom();
 
-  // Restore state from localStorage on mount
+  // Restore tab and service from localStorage
   useEffect(() => {
-    const savedGuest = sessionStorage.getItem('guest');
-    const savedGuestInfo = localStorage.getItem('guestInfo');
-    const accessToken = localStorage.getItem('accessToken');
     const savedTab = localStorage.getItem('activeTab') as TabType;
     const savedService = localStorage.getItem('activeService');
 
-    // Restore guest from localStorage if token exists
-    if (accessToken && savedGuestInfo) {
-      try {
-        const guestInfo = JSON.parse(savedGuestInfo);
-        setGuest(guestInfo);
-        sessionStorage.setItem('guest', JSON.stringify(guestInfo));
-      } catch (error) {
-        console.error('Error parsing guest info:', error);
-        localStorage.removeItem('guestInfo');
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-      }
-    } else if (savedGuest) {
-      // Fallback to sessionStorage
-      setGuest(JSON.parse(savedGuest));
-    }
-    
     if (savedTab) {
       setActiveTab(savedTab);
     }
     if (savedService) {
       setActiveService(savedService);
     }
-    setLoading(false);
   }, []);
-
-  // Force URL to home when on login screen
-  useEffect(() => {
-    if (!guest && !loading) {
-      const hash = window.location.hash.replace('#', '');
-      if (hash !== '/' && hash !== '') {
-        window.location.hash = '/';
-      }
-    }
-  }, [guest, loading]);
-
-  // Save guest state to sessionStorage (cleared on browser close)
-  useEffect(() => {
-    if (guest) {
-      sessionStorage.setItem('guest', JSON.stringify(guest));
-    } else {
-      sessionStorage.removeItem('guest');
-    }
-  }, [guest]);
 
   // Save activeTab and activeService to localStorage
   useEffect(() => {
@@ -123,6 +82,10 @@ function AppContent() {
   useEffect(() => {
     const fetchOrderHistory = async () => {
       if (!guest || !roomNumber) return;
+
+      // Skip API fetch if using mock login (no auth token)
+      const token = localStorage.getItem('accessToken');
+      if (!token) return;
 
       try {
         const response = await getOrderHistory(roomNumber, { page: 0, size: 20 });
@@ -143,7 +106,12 @@ function AppContent() {
         }));
 
         setOrders(apiOrders);
-      } catch (error) {
+      } catch (error: any) {
+        // Handle 404 (no active stay) gracefully - expected with mock login
+        if (error.response?.status === 404) {
+          // Silent fail - no active stay found
+          return;
+        }
         console.error('Failed to fetch order history:', error);
         // Keep default orders on error
       }
@@ -152,10 +120,9 @@ function AppContent() {
     fetchOrderHistory();
   }, [guest, roomNumber]);
   
-  // Real state for orders and notifications
+  // Real state for orders
   const [orders, setOrders] = useState<Order[]>([]);
 
-  const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
   const [showEmergencyModal, setShowEmergencyModal] = useState(false);
   const [emergencyCalling, setEmergencyCalling] = useState(false);
   const [orderSearch, setOrderSearch] = useState('');
@@ -188,67 +155,42 @@ function AppContent() {
   // Handle Login success
   const handleLoginSuccess = (loggedInGuest: Guest) => {
     setGuest(loggedInGuest);
-    setActiveTab('home');
+    setActiveTab('services');
     setActiveService(null);
   };
 
-  // Logout action
-  const handleLogout = async () => {
-    try {
-      // Call logout API
-      await logout();
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      // Clear all auth data
-      setGuest(null);
-      setOrders([]);
-      setNotifications(initialNotifications);
-      
-      // Clear localStorage auth data
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('roomNumber');
-      localStorage.removeItem('guestInfo');
-      sessionStorage.removeItem('guest');
-      localStorage.removeItem('activeTab');
-      localStorage.removeItem('activeService');
-      
-      // Redirect to login
-      window.location.hash = '/';
-    }
-  };
-
   // Add a new order from sub-services dynamically
-  const handleAddOrder = (newOrderData: {
+  const handleAddOrder = async (newOrderData: {
     type: Order['type'];
     title: string;
     details: string;
     estimatedDelivery: string;
   }) => {
-    const newOrder: Order = {
-      id: `ord-${Math.floor(Math.random() * 10000)}`,
-      type: newOrderData.type,
-      title: newOrderData.title,
-      status: 'pending',
-      time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
-      estimatedDelivery: newOrderData.estimatedDelivery,
-      details: newOrderData.details
-    };
+    // Refresh orders from API to get the latest
+    if (roomNumber) {
+      try {
+        const response = await getOrderHistory(roomNumber, { page: 0, size: 20 });
+        
+        // Convert API response to Order format
+        const apiOrders: Order[] = response.content.map((order: any) => ({
+          id: order.orderId.toString(),
+          type: order.category === 'FOOD' ? 'room_service' : 
+                order.category === 'DRINK' ? 'room_service' : 
+                order.category === 'SERVICE' ? 'laundry' : 'room_service',
+          title: `طلب #${order.orderId}`,
+          status: order.status === 'COMPLETED' ? 'completed' :
+                  order.status === 'PENDING' ? 'pending' :
+                  order.status === 'CANCELLED' ? 'cancelled' : 'pending',
+          time: new Date(order.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+          estimatedDelivery: order.completedAt ? 'تم التوصيل' : 'قيد المعالجة',
+          details: order.items.map((item: any) => `${item.itemName} (عدد ${item.quantity})`).join(', ')
+        }));
 
-    setOrders((prev) => [newOrder, ...prev]);
-
-    // Push matching real notification dynamically
-    const newNotif: Notification = {
-      id: `notif-${Math.floor(Math.random() * 10000)}`,
-      title: `تأكيد طلب جديد: ${newOrderData.title} ✨`,
-      message: `تم استلام تفاصيل طلبك: (${newOrderData.details}) وجاري معالجته وتوجيهه فوراً إلى القسم المختص.`,
-      time: 'الآن',
-      read: false,
-      type: 'order'
-    };
-
-    setNotifications((prev) => [newNotif, ...prev]);
+        setOrders(apiOrders);
+      } catch (error) {
+        console.error('Failed to refresh orders:', error);
+      }
+    }
 
     // Switch tab to Requests so they see it!
     setActiveTab('requests');
@@ -271,31 +213,10 @@ function AppContent() {
         )
       );
 
-      // Add notification
-      const cancelNotif: Notification = {
-        id: `notif-${Math.floor(Math.random() * 10000)}`,
-        title: 'تم إلغاء الطلب',
-        message: `تم إلغاء الطلب #${orderId} بنجاح.`,
-        time: 'الآن',
-        read: false,
-        type: 'info'
-      };
-
-      setNotifications((prev) => [cancelNotif, ...prev]);
     } catch (error) {
       console.error('Failed to cancel order:', error);
       alert('فشل إلغاء الطلب. يرجى المحاولة مرة أخرى.');
     }
-  };
-
-  // Mark all notifications read
-  const handleMarkAllRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  };
-
-  // Clear single notification
-  const handleClearNotification = (id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
   };
 
   // Trigger emergency call mock
@@ -312,8 +233,6 @@ function AppContent() {
     }, 2000);
   };
 
-  const unreadNotificationsCount = notifications.filter((n) => !n.read).length;
-
   const filteredOrders = useMemo(() => {
     return orders.filter((ord) => {
       const matchSearch = !orderSearch || ord.title.includes(orderSearch) || ord.details.includes(orderSearch);
@@ -324,17 +243,12 @@ function AppContent() {
 
   // Navigation from dashboard cards
   const handleDashboardNavigation = (serviceId: string) => {
-    // If it corresponds to a footer tab, switch footer tab
-    if (serviceId === 'profile' || serviceId === 'notifications' || serviceId === 'bills') {
-      if (serviceId === 'bills') {
-        setActiveService('bills');
-        setActiveTab('requests');
-      } else {
-        setActiveTab(serviceId as TabType);
-        setActiveService(null);
-      }
-    } else if (serviceId === 'reservation') {
-      setActiveService('reservation');
+    // Don't navigate for requests and special-orders
+    if (serviceId === 'requests' || serviceId === 'special-orders') {
+      return;
+    } else if (serviceId === 'bills') {
+      setActiveService('bills');
+      setActiveTab('requests');
     } else {
       // Open as nested service screen
       setActiveService(serviceId);
@@ -366,14 +280,14 @@ function AppContent() {
 
     // If logged in, parse URL and update state
     if (hash === '/' || hash === '') {
-      setActiveTab('home');
+      setActiveTab('services');
       setActiveService(null);
     } else if (hash.startsWith('/')) {
       const path = hash.substring(1);
       
       // Check if it's a service or a tab
       const services = ['room_service', 'laundry', 'spa', 'restaurant', 'taxi', 'maintenance', 'reception', 'bills', 'activities', 'offers', 'reservation', 'check_in', 'check_out', 'my_room', 'concierge', 'facilities', 'loyalty', 'reviews', 'wallet', 'stay_timeline'];
-      const tabs = ['home', 'requests', 'profile', 'notifications'];
+      const tabs = ['services', 'requests'];
       
       if (services.includes(path)) {
         setActiveService(path);
@@ -392,32 +306,30 @@ function AppContent() {
     if (activeService) {
       switch (activeService) {
         case 'room_service':
-          return <RoomService onBack={() => setActiveService(null)} onAddOrder={handleAddOrder} />;
+          return <RoomService onBack={() => { setActiveService(null); setActiveTab('services'); }} onAddOrder={handleAddOrder} />;
         case 'laundry':
-          return <Laundry guest={guest} onBack={() => setActiveService(null)} onAddOrder={handleAddOrder} />;
+          return <Laundry guest={guest} onBack={() => { setActiveService(null); setActiveTab('services'); }} onAddOrder={handleAddOrder} />;
         case 'housekeeping':
-          return <Housekeeping guest={guest} onBack={() => setActiveService(null)} onAddOrder={handleAddOrder} />;
+          return <Housekeeping guest={guest} onBack={() => { setActiveService(null); setActiveTab('services'); }} onAddOrder={handleAddOrder} />;
         case 'restaurant':
-          return <Restaurant onBack={() => setActiveService(null)} onAddOrder={handleAddOrder} />;
+          return <Restaurant onBack={() => { setActiveService(null); setActiveTab('services'); }} onAddOrder={handleAddOrder} />;
         case 'spa':
-          return <Spa onBack={() => setActiveService(null)} onAddOrder={handleAddOrder} />;
+          return <Spa onBack={() => { setActiveService(null); setActiveTab('services'); }} onAddOrder={handleAddOrder} />;
         case 'taxi':
-          return <Taxi onBack={() => setActiveService(null)} onAddOrder={handleAddOrder} />;
+          return <Taxi onBack={() => { setActiveService(null); setActiveTab('services'); }} onAddOrder={handleAddOrder} />;
         case 'maintenance':
-          return <Maintenance guest={guest} onBack={() => setActiveService(null)} onAddOrder={handleAddOrder} />;
+          return <Maintenance guest={guest} onBack={() => { setActiveService(null); setActiveTab('services'); }} onAddOrder={handleAddOrder} />;
         case 'reception':
-          return <Reception guest={guest} onBack={() => setActiveService(null)} />;
+          return <Reception guest={guest} onBack={() => { setActiveService(null); setActiveTab('services'); }} />;
         case 'bills':
-          return <Bills guest={guest} onBack={() => setActiveService(null)} />;
+          return <Bills guest={guest} onBack={() => { setActiveService(null); setActiveTab('services'); }} />;
         case 'activities':
-          return <Activities onBack={() => setActiveService(null)} onAddOrder={handleAddOrder} />;
+          return <Activities onBack={() => { setActiveService(null); setActiveTab('services'); }} onAddOrder={handleAddOrder} />;
         case 'offers':
-          return <Offers onBack={() => setActiveService(null)} onAddOrder={handleAddOrder} />;
-        case 'faq':
-          return <Profile guest={guest} onLogout={handleLogout} />;
+          return <Offers onBack={() => { setActiveService(null); setActiveTab('services'); }} onAddOrder={handleAddOrder} />;
         case 'reservation':
           return <Reservation 
-            onBack={() => setActiveService(null)} 
+            onBack={() => { setActiveService(null); setActiveTab('services'); }} 
             guestName={guest.name}
             guestLastName={guest.lastName}
             reservationNumber={guest.reservationNumber}
@@ -430,7 +342,7 @@ function AppContent() {
           />;
         case 'check_in':
           return <CheckIn 
-            onBack={() => setActiveService(null)} 
+            onBack={() => { setActiveService(null); setActiveTab('services'); }} 
             guestPhone={guest.phone}
             guestName={guest.name}
             guestLastName={guest.lastName}
@@ -441,7 +353,7 @@ function AppContent() {
           />;
         case 'check_out':
           return <CheckOut 
-            onBack={() => setActiveService(null)} 
+            onBack={() => { setActiveService(null); setActiveTab('services'); }} 
             roomNumber={guest.roomNumber}
             checkOutDate={guest.checkOutDate}
             totalAmount={guest.totalAmount}
@@ -450,37 +362,29 @@ function AppContent() {
             loyaltyPoints={guest.loyaltyPoints}
           />;
         case 'my_room':
-          return <MyRoom guest={guest} onBack={() => setActiveService(null)} onAddOrder={handleAddOrder} />;
+          return <MyRoom guest={guest} onBack={() => { setActiveService(null); setActiveTab('services'); }} onAddOrder={handleAddOrder} />;
         case 'concierge':
-          return <Concierge onBack={() => setActiveService(null)} onAddOrder={handleAddOrder} />;
+          return <Concierge onBack={() => { setActiveService(null); setActiveTab('services'); }} onAddOrder={handleAddOrder} />;
         case 'facilities':
-          return <Facilities onBack={() => setActiveService(null)} onAddOrder={handleAddOrder} />;
+          return <Facilities onBack={() => { setActiveService(null); setActiveTab('services'); }} onAddOrder={handleAddOrder} />;
         case 'loyalty':
-          return <Loyalty guest={guest} onBack={() => setActiveService(null)} />;
+          return <Loyalty guest={guest} onBack={() => { setActiveService(null); setActiveTab('services'); }} />;
         case 'reviews':
-          return <Reviews onBack={() => setActiveService(null)} />;
+          return <Reviews onBack={() => { setActiveService(null); setActiveTab('services'); }} />;
         case 'wallet':
-          return <Wallet guest={guest} onBack={() => setActiveService(null)} />;
+          return <Wallet guest={guest} onBack={() => { setActiveService(null); setActiveTab('services'); }} />;
         case 'stay_timeline':
-          return <StayTimeline onBack={() => setActiveService(null)} />;
+          return <StayTimeline onBack={() => { setActiveService(null); setActiveTab('services'); }} />;
         default:
           setActiveService(null);
+          setActiveTab('services');
           return null;
       }
     }
 
     // 2. Otherwise render standard tab view
     switch (activeTab) {
-      case 'home':
-        return (
-          <Dashboard
-            guest={guest}
-            onNavigateToService={handleDashboardNavigation}
-            onEmergencyCall={handleEmergencyCall}
-          />
-        );
       case 'services':
-        // Show a beautiful quick services collection list as main tab backup
         return (
           <Dashboard
             guest={guest}
@@ -489,137 +393,7 @@ function AppContent() {
           />
         );
       case 'requests':
-        return (
-          <div className="page-container space-y-6 text-right font-sans">
-            <div className="flex justify-between items-center pb-2 border-b border-white/5 flex-wrap gap-3">
-              <button
-                onClick={() => setActiveService('bills')}
-                className="text-xs text-[#dfba73] hover:text-[#dfba73]/80 border border-[#dfba73]/20 bg-[#dfba73]/5 px-3 py-1.5 rounded-full font-semibold transition-all touch-target"
-                id="btn-requests-billing"
-              >
-                تفاصيل الفاتورة النشطة
-              </button>
-              <h1 className="font-serif text-xl sm:text-2xl font-bold text-white">سجل طلباتي النشطة</h1>
-            </div>
-
-            <div className="space-y-3">
-              <div className="relative">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                <input value={orderSearch} onChange={(e) => setOrderSearch(e.target.value)} placeholder="ابحث في الطلبات..."
-                  className="w-full bg-black/50 rounded-xl border border-white/10 pr-10 pl-4 py-3 text-sm text-white focus:border-[#dfba73] outline-none" />
-              </div>
-              <div className="flex flex-wrap gap-2 justify-end">
-                {[
-                  { id: 'all', label: 'الكل' },
-                  { id: 'pending', label: 'قيد المراجعة' },
-                  { id: 'preparing', label: 'جاري التحضير' },
-                  { id: 'on_the_way', label: 'في الطريق' },
-                  { id: 'completed', label: 'مكتمل' },
-                ].map((f) => (
-                  <button key={f.id} onClick={() => setOrderStatusFilter(f.id as typeof orderStatusFilter)}
-                    className={`px-3 py-1.5 rounded-full text-[11px] touch-target ${orderStatusFilter === f.id ? 'bg-[#dfba73]/20 text-[#dfba73]' : 'bg-white/5 text-gray-400'}`}>
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {filteredOrders.length === 0 ? (
-              <div className="glass-panel rounded-2xl text-center space-y-3">
-                <div className="text-4xl">📋</div>
-                <h3 className="text-sm font-bold text-gray-400">{orders.length === 0 ? 'لا توجد طلبات جارية' : 'لا توجد نتائج مطابقة'}</h3>
-                <p className="text-xs text-gray-600 max-w-xs mx-auto leading-relaxed">
-                  {orders.length === 0 ? 'لم تقم بإرسال أي طلبات للجناح بعد. تصفّح قائمة الخدمات الفندقية لطلب الطعام أو حجز السبا.' : 'جرّب تغيير معايير البحث أو الفلتر.'}
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4" id="requests-list">
-                {filteredOrders.map((ord) => (
-                  <div
-                    key={ord.id}
-                    className="glass-panel p-5 rounded-2xl border-white/5 space-y-4 relative overflow-hidden text-right shadow-md"
-                  >
-                    {/* Header line */}
-                    <div className="flex justify-between items-center border-b border-white/5 pb-2.5">
-                      {/* Timeline status badge */}
-                      {ord.status === 'pending' && (
-                        <span className="px-2.5 py-1 bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 text-[10px] font-bold rounded-lg font-sans">
-                          ⏳ قيد المراجعة الفورية
-                        </span>
-                      )}
-                      {ord.status === 'preparing' && (
-                        <span className="px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] font-bold rounded-lg font-sans animate-pulse">
-                          👨‍🍳 جاري التحضير والتجهيز
-                        </span>
-                      )}
-                      {ord.status === 'on_the_way' && (
-                        <span className="px-2.5 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[10px] font-bold rounded-lg font-sans">
-                          🚚 في الطريق إلى جناحك
-                        </span>
-                      )}
-                      {ord.status === 'completed' && (
-                        <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold rounded-lg font-sans">
-                          ✅ تم تسليم الخدمة بنجاح
-                        </span>
-                      )}
-                      {ord.status === 'cancelled' && (
-                        <span className="px-2.5 py-1 bg-red-500/10 text-red-400 border border-red-500/20 text-[10px] font-bold rounded-lg font-sans">
-                          ❌ تم إلغاء الطلب
-                        </span>
-                      )}
-
-                      <div className="text-right">
-                        <h4 className="text-xs font-bold text-white">{ord.title}</h4>
-                        <span className="text-[10px] text-gray-500 font-mono block mt-0.5">{ord.time}</span>
-                      </div>
-
-                      {/* Cancel button for pending/preparing orders */}
-                      {(ord.status === 'pending' || ord.status === 'preparing') && (
-                        <button
-                          onClick={() => handleCancelOrder(ord.id)}
-                          className="px-3 py-1.5 bg-red-500/10 text-red-400 border border-red-500/20 text-[10px] font-bold rounded-lg hover:bg-red-500/20 transition-colors cursor-pointer"
-                        >
-                          إلغاء
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Details content */}
-                    <p className="text-xs text-gray-400 leading-relaxed font-sans bg-black/20 p-3 rounded-xl border border-white/5">
-                      {ord.details}
-                    </p>
-
-                    {/* Timeline Tracker visualization */}
-                    <div className="space-y-1.5 pt-1">
-                      <div className="flex justify-between items-center text-[10px] text-gray-500">
-                        <span className="font-sans text-[#dfba73] font-medium">{ord.estimatedDelivery}</span>
-                        <span>الوصول المقدر:</span>
-                      </div>
-                      
-                      {/* 4 stage visual progress line */}
-                      <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden flex gap-0.5">
-                        <div className={`h-full flex-1 ${ord.status !== 'pending' ? 'bg-[#dfba73]' : 'bg-yellow-500/40'}`} />
-                        <div className={`h-full flex-1 ${ord.status === 'preparing' || ord.status === 'on_the_way' || ord.status === 'completed' ? 'bg-[#dfba73]' : 'bg-white/5'}`} />
-                        <div className={`h-full flex-1 ${ord.status === 'on_the_way' || ord.status === 'completed' ? 'bg-[#dfba73]' : 'bg-white/5'}`} />
-                        <div className={`h-full flex-1 ${ord.status === 'completed' ? 'bg-emerald-400' : 'bg-white/5'}`} />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      case 'notifications':
-        return (
-          <Notifications
-            notifications={notifications}
-            onMarkAllRead={handleMarkAllRead}
-            onClearNotification={handleClearNotification}
-          />
-        );
-      case 'profile':
-        return <Profile guest={guest} onLogout={handleLogout} />;
+        return <Orders onAddOrder={handleAddOrder} />;
       default:
         return null;
     }
@@ -632,7 +406,7 @@ function AppContent() {
           /* 1. INITIAL LUXURY LOADING SCREEN */
           <LoadingScreen key="loading" onComplete={() => setLoading(false)} />
         ) : !guest ? (
-          /* 2. AUTHENTICATION GUEST GATEWAY */
+          /* 2. LOGIN SCREEN */
           <LoginScreen key="login" onLoginSuccess={handleLoginSuccess} />
         ) : (
           /* 3. MAIN PREMIUM PORTAL */
@@ -660,7 +434,6 @@ function AppContent() {
                 setActiveService(null); // Clear nested sub-views upon navigation
               }}
               cartCount={orders.filter((o) => o.status === 'pending' || o.status === 'preparing' || o.status === 'on_the_way').length}
-              unreadNotifications={unreadNotificationsCount}
             />
           </motion.div>
         )}

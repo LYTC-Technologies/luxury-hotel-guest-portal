@@ -4,29 +4,24 @@
  */
 
 import { motion } from 'motion/react';
-import { Home, Grid, ClipboardList, Bell, User } from 'lucide-react';
+import { Grid, ClipboardList } from 'lucide-react';
 
-export type TabType = 'home' | 'services' | 'requests' | 'notifications' | 'profile';
+export type TabType = 'services' | 'requests';
 
 interface FooterNavProps {
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
   cartCount: number;
-  unreadNotifications: number;
 }
 
 export default function FooterNav({
   activeTab,
   setActiveTab,
   cartCount,
-  unreadNotifications,
 }: FooterNavProps) {
   const navItems = [
-    { id: 'profile', name: 'حسابي', icon: User },
-    { id: 'notifications', name: 'الإشعارات', icon: Bell, badge: unreadNotifications },
     { id: 'requests', name: 'طلباتي', icon: ClipboardList, badge: cartCount },
     { id: 'services', name: 'الخدمات', icon: Grid },
-    { id: 'home', name: 'الرئيسية', icon: Home },
   ];
 
   return (

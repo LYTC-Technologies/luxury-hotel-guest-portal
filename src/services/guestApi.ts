@@ -217,6 +217,19 @@ export interface PageSpecialOfferResponse {
   empty: boolean;
 }
 
+export interface RateStayRequest {
+  stars: number;
+  notes: string;
+}
+
+export interface SpecialOrderResponse {
+  id: number;
+  stayId: number;
+  specialOffer: SpecialOfferResponse;
+  agreedPrice: number;
+  createdAt: string;
+}
+
 // ==================== AUTHENTICATION APIs ====================
 
 /**
@@ -280,7 +293,7 @@ export interface PageMenuItemResponse {
  * Create a new order
  */
 export const createOrder = async (roomNumber: string, orderData: CreateOrderRequest): Promise<OrderResponse> => {
-  return post<OrderResponse>(`/api/guest/orders/${roomNumber}`, orderData);
+  return post<OrderResponse>(`/api/guest/orders?roomNumber=${roomNumber}`, orderData);
 };
 
 /**
@@ -291,13 +304,14 @@ export const getOrderHistory = async (
   pageable: Pageable = { page: 0, size: 20 }
 ): Promise<PageOrderResponse> => {
   const params: Record<string, any> = {
+    roomNumber,
     page: pageable.page,
     size: pageable.size,
   };
   
   if (pageable.sort && pageable.sort.length > 0) params.sort = pageable.sort;
   
-  return get<PageOrderResponse>(`/api/guest/orders/${roomNumber}`, { params });
+  return get<PageOrderResponse>('/api/guest/orders', { params });
 };
 
 /**
@@ -321,6 +335,51 @@ export const cancelOrder = async (orderId: number): Promise<OrderResponse> => {
  */
 export const getStayDetails = async (roomNumber: string): Promise<StayDetailsResponse> => {
   return get<StayDetailsResponse>(`/api/guest/stays/${roomNumber}`);
+};
+
+/**
+ * Rate the stay
+ */
+export const rateStay = async (roomNumber: string, ratingData: RateStayRequest): Promise<StayDetailsResponse> => {
+  return put<StayDetailsResponse>(`/api/guest/stay/rating?roomNumber=${roomNumber}`, ratingData);
+};
+
+/**
+ * Get special orders for a room
+ */
+export const getSpecialOrders = async (roomNumber: string): Promise<SpecialOrderResponse[]> => {
+  return get<SpecialOrderResponse[]>(`/api/guest/stays/special-orders?roomNumber=${roomNumber}`);
+};
+
+/**
+ * Get closed stays (for bills)
+ */
+export const getClosedStays = async (pageable: Pageable = { page: 0, size: 20 }): Promise<PageStayDetailsResponse> => {
+  const params: Record<string, any> = {
+    page: pageable.page,
+    size: pageable.size,
+    status: 'CLOSED'
+  };
+  return get<PageStayDetailsResponse>('/api/dashboard/front-desk/stays', params);
+};
+
+/**
+ * Get stay rating (included in stay details)
+ */
+export const getStayRating = async (roomNumber: string): Promise<{ stars: number; notes: string } | null> => {
+  try {
+    const stayDetails = await getStayDetails(roomNumber);
+    if (stayDetails.stars || stayDetails.notes) {
+      return {
+        stars: stayDetails.stars || 0,
+        notes: stayDetails.notes || ''
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Failed to fetch stay rating:', error);
+    return null;
+  }
 };
 
 // ==================== SPECIAL OFFERS API ====================

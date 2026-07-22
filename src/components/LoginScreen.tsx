@@ -3,12 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useState, useEffect } from 'react';
+import { motion } from 'motion/react';
 import { hotelDetails } from '../data';
 import { Guest } from '../types';
-import { login } from '../services/guestApi';
-import { getStayDetails } from '../services/guestApi';
 import { useRoom } from '../contexts/RoomContext';
 
 interface LoginScreenProps {
@@ -17,73 +15,78 @@ interface LoginScreenProps {
 }
 
 export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [roomNumber, setRoomNumber] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showForgotModal, setShowForgotModal] = useState(false);
-  const { setRoomNumber } = useRoom();
+  const { setRoomNumber: setContextRoomNumber } = useRoom();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!username.trim() || !password.trim()) {
-      setError('يرجى ملء جميع الحقول المطلوبة للمتابعة.');
+  // Check for room number in URL parameter (Base64 encoded)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const encryptedRoom = urlParams.get('room');
+
+    if (encryptedRoom) {
+      try {
+        // Decode Base64
+        const decodedRoom = atob(encryptedRoom);
+        setRoomNumber(decodedRoom);
+
+        // Auto-submit login after a short delay
+        setTimeout(() => {
+          handleLogin();
+        }, 500);
+      } catch (err) {
+        setError('رمز الغرفة غير صحيح.');
+      }
+    }
+  }, []);
+
+  const handleLogin = async () => {
+    if (!roomNumber.trim()) {
+      setError('يرجى إدخال رقم الغرفة.');
       return;
     }
 
     setLoading(true);
     setError('');
 
-    try {
-      // Login using the API
-      const loginResponse = await login({ username, password });
-      
-      // Save JWT tokens
-      localStorage.setItem('accessToken', loginResponse.token);
-      localStorage.setItem('refreshToken', loginResponse.refreshToken);
-      
-      // Set room number in RoomContext
-      setRoomNumber(username);
-      
-      // Fetch guest details using the room number
-      const stayDetails = await getStayDetails(username);
-      
-      // Create Guest object from API response
-      const guest: Guest = {
-        name: stayDetails.guestName,
-        lastName: '', // Last name not provided in stay details
-        roomNumber: stayDetails.roomNumber,
-        reservationNumber: `RA-${stayDetails.roomNumber}`, // Generate reservation number as RA-{RoomNumber}
-        checkInDate: stayDetails.checkInTime,
-        checkOutDate: stayDetails.expectedCheckOutDate,
-        hotelName: hotelDetails.name,
-        roomType: stayDetails.description,
-        bedType: 'King Size', // Default value
-        guestCount: stayDetails.numAdults,
-        childrenCount: stayDetails.numKids,
-        loyaltyPoints: 0, // Not provided in API
-        balanceDue: stayDetails.totalCharge - stayDetails.roomCharge,
-        paidAmount: stayDetails.roomCharge,
-        totalAmount: stayDetails.totalCharge,
-        taxes: 0, // Not provided in API
-        discounts: 0, // Not provided in API
-        promoCode: '', // Not provided in API
-        reservationStatus: stayDetails.status === 'CHECKED_IN' ? 'مؤكد' as const : 
-                          stayDetails.status === 'CHECKED_OUT' ? 'ملغى' as const : 
-                          'قيد المراجعة' as const,
-        email: '', // Not provided in API
-        phone: stayDetails.guestPhone,
-      };
-      
-      // Save guest info in localStorage
-      localStorage.setItem('guestInfo', JSON.stringify(guest));
-      
-      onLoginSuccess(guest);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'فشل تسجيل الدخول. يرجى التحقق من رقم الغرفة ورقم الحجز.');
-    } finally {
-      setLoading(false);
-    }
+    // Simulate loading
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Create guest object with room number (mock data)
+    const guest: Guest = {
+      name: 'ضيف فندق',
+      lastName: '',
+      roomNumber: roomNumber,
+      reservationNumber: `RA-${roomNumber}`,
+      checkInDate: new Date().toISOString().split('T')[0],
+      checkOutDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      hotelName: hotelDetails.name,
+      roomType: 'جناح ملكي',
+      bedType: 'King Size',
+      guestCount: 2,
+      childrenCount: 0,
+      loyaltyPoints: 0,
+      balanceDue: 0,
+      paidAmount: 0,
+      totalAmount: 0,
+      taxes: 0,
+      discounts: 0,
+      promoCode: '',
+      reservationStatus: 'مؤكد' as const,
+      email: '',
+      phone: '',
+    };
+
+    // Set room number in RoomContext
+    setContextRoomNumber(roomNumber);
+
+    // Save guest info in localStorage
+    localStorage.setItem('guestInfo', JSON.stringify(guest));
+    localStorage.setItem('roomNumber', roomNumber);
+
+    onLoginSuccess(guest);
+    setLoading(false);
   };
 
   return (
@@ -125,54 +128,35 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
           <div className="w-12 h-[1px] bg-[#dfba73]/30 mx-auto mt-4" />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5" id="login-form">
-          {/* Username (Room Number) Input */}
+        <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }} className="space-y-5" id="login-form">
+          {/* Room Number Input */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-gray-300 mr-1" htmlFor="username">
+            <label className="block text-xs font-medium text-gray-300 mr-1" htmlFor="roomNumber">
               رقم الغرفة <span className="text-[#dfba73]">*</span>
             </label>
             <input
-              id="username"
+              id="roomNumber"
               type="text"
               required
-              placeholder="مثال: 702"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-5 py-3.5 bg-black/50 hover:bg-black/70 focus:bg-black/80 rounded-xl border border-white/10 focus:border-[#dfba73] text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-[#dfba73] transition-all duration-300 text-right text-base font-sans"
-              style={{ color: 'white' }}
-            />
-          </div>
-
-          {/* Password (Reservation Number) Input */}
-          <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-gray-300 mr-1" htmlFor="password">
-              رقم الحجز <span className="text-[#dfba73]">*</span>
-            </label>
-            <input
-              id="password"
-              type="text"
-              required
-              placeholder="مثال: RA-982341"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-5 py-3.5 bg-black/50 hover:bg-black/70 focus:bg-black/80 rounded-xl border border-white/10 focus:border-[#dfba73] text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-[#dfba73] transition-all duration-300 text-right text-base font-sans"
-              style={{ color: 'white' }}
+              placeholder="رقم الغرفة"
+              value={roomNumber}
+              onChange={(e) => setRoomNumber(e.target.value)}
+              className="w-full px-5 py-3.5 bg-black/50 hover:bg-black/70 focus:bg-black/80 rounded-xl border border-white/10 focus:border-[#dfba73] placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-[#dfba73] transition-all duration-300 text-right text-base font-sans"
+              style={{ color: '#ffffff', backgroundColor: 'rgba(0,0,0,0.5)' }}
             />
           </div>
 
           {/* Error Message */}
-          <AnimatePresence>
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="text-xs text-red-400 bg-red-950/30 border border-red-900/30 p-3 rounded-xl text-center"
-              >
-                ⚠️ {error}
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="text-xs text-red-400 bg-red-950/30 border border-red-900/30 p-3 rounded-xl text-center"
+            >
+              ⚠️ {error}
+            </motion.div>
+          )}
 
           {/* Actions */}
           <div className="pt-2">
@@ -185,76 +169,15 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
               {loading ? (
                 <div className="flex items-center gap-2">
                   <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                  <span>جاري التحقق من الهوية...</span>
+                  <span>جاري التحقق...</span>
                 </div>
               ) : (
-                <span>تسجيل الدخول الآمن</span>
+                <span>دخول</span>
               )}
-            </button>
-          </div>
-
-          <div className="text-center pt-2">
-            <button
-              id="btn-forgot-password"
-              type="button"
-              onClick={() => setShowForgotModal(true)}
-              className="text-xs text-gray-400 hover:text-[#dfba73] transition-colors duration-200"
-            >
-              نسيت كلمة المرور؟
             </button>
           </div>
         </form>
       </motion.div>
-
-      {/* Forgot Reservation Modal */}
-      <AnimatePresence>
-        {showForgotModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowForgotModal(false)}
-              className="absolute inset-0 bg-black/80 backdrop-blur-md"
-            />
-            
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="relative z-10 w-full max-w-md glass-panel p-6 sm:p-8 rounded-2xl shadow-2xl border-white/10 text-right"
-              id="forgot-modal"
-            >
-              <h3 className="font-serif text-lg font-bold text-[#dfba73] mb-3">
-                استرجاع رقم الحجز الفندقي
-              </h3>
-              <p className="text-xs text-gray-300 leading-relaxed mb-4">
-                يسعدنا مساعدتك في استلام رقم الحجز الخاص بك. يرجى التواصل فوراً مع مركز خدمة الضيوف الملكي على الرقم التالي للحصول على الدعم الفوري:
-              </p>
-              
-              <div className="bg-black/40 p-4 rounded-xl border border-white/5 space-y-2 mb-5">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-[#dfba73] font-mono select-all">{hotelDetails.phone}</span>
-                  <span className="text-gray-400">رقم الهاتف المباشر:</span>
-                </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-[#dfba73] font-mono select-all">{hotelDetails.email}</span>
-                  <span className="text-gray-400">البريد الإلكتروني:</span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowForgotModal(false)}
-                className="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs text-white transition-colors duration-200 cursor-pointer"
-                id="btn-close-forgot"
-              >
-                إغلاق النافذة
-              </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* Luxury Footer details */}
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] text-gray-600 text-center font-sans">

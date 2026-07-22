@@ -27,7 +27,7 @@ import {
 
 export const hotelDetails = {
   name: 'منتجع الأمان والريتز الملكي',
-  location: 'الرياض، المملكة العربية السعودية',
+  location: '',
   logo: '👑',
   phone: '+966 11 456 7890',
   email: 'reception@royal-aman.com',
